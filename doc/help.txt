@@ -1,0 +1,337 @@
+Copyright 2024 Chase Taylor
+Permission is granted to copy,
+distribute and/or modify this document
+under the terms of the GNU Free
+Documentation License, Version 1.3 or
+any later version published by the Free
+Software Foundation; with the Invariant
+Sections being just "Why chTRACKER,"
+with no Front-Cover Texts, and with no
+Back-Cover Texts. A copy of the license
+is included in the file:
+COPYING.DOCUMENTATION
+
+---------CHTRACKER HELP SCREEN---------
+Use up and down arrow keys to scroll.
+
+This is where you'll go for information
+on how to use chTRACKER. You're
+likely viewing this in the program's
+built-in help menu. If not, hi!
+
+---# General
+
+Press function keys F1 - F7 to change
+menus. Here are basic descriptions:
+
+F1: Help menu - Where you are right now
+
+F2: Order menu - This is where you'd
+    set what patterns to use on what
+    instrument and where.
+
+F3: Pattern menu - The real editor!
+    This is where you edit notes,
+    volumes, and effects.
+
+F4: Instrument menu - Where you add
+    instruments; LFSRs and other
+    synths!
+
+F5: Order management menu - This is
+    where you delete and clone orders.
+
+F6: Options menu - Currently where you
+    set RPM and how many rows are in a
+    single pattern.
+
+F7: File menu - A built in file picker
+    for the program. It should start in
+    your home directory/folder. I'm
+    still not quite sure how this acts
+    with Windows, but it should work
+    fine.
+
+This program assumes you have basic
+knowledge on how to use a chiptune
+tracker. If not, there are many helpful
+guides online. It's also a really good
+idea to know hexadecimal. This program
+has a lot of hexadecimal.
+
+Most of the menus have information on
+what key to press. Press ESC outside of
+the file menu to quit the program. This
+currently doesn't check for unsaved
+changes (however that is planned), so
+watch out!
+
+In any menu (Except this one!), there
+is a cursor (represented by the
+foreground and background being
+swapped) and you can move it using the
+arrow keys.
+
+---# Effects
+This program has various effects (The
+Eeeee collum in the pattern menu) and
+every effect channel is completely
+independent from each other. You can
+start a pitch down effect on one column
+and another pitch down effect on a
+different collumn, and the effect will
+be doubled. Effect list:
+
+ -xxxx: Null. Does nothing.
+ 0abcS: Arpeggio. Switches between the
+        base note and the note plus
+        a semitones, the note plus b
+        semitones, etc. at S speed.
+        S=0 is fastest, and S=F is
+        slowest. Relative to tempo.
+
+ 1xxxx: Pitch up. constantly increases
+        pitch by x amount.
+
+ 2xxxx: Pitch down. constantly
+        decreases pitch by x amount.
+
+ 5xxxx: Volume up. see 1xxxx.
+
+ 6xxxx: Volume down. see 2xxxx.
+
+ Cxxxx: Instrument variation. Changes
+        how an instrument sounds, e.g.
+        the duty cycle on a square
+        instrument.
+
+---# Menus
+
+I'm going to fully explain the menus
+here, in order of how you would maybe
+use them:
+
+F7 - File menu:
+    If you want to continue work from
+    another time, or save work for
+    another time, you go here. It
+    starts in your home directory or
+    folder and it's the only menu where
+    the [ESC] key won't quit the
+    program. Press [Return] on blue
+    text (which are folders or
+    directories) to view the files in
+    there. Press [Return] on green text
+    (files) to load the file. You will
+    get the "Refused to open the file"
+    error if:
+     - The file is not a chTRACKER file
+     - The file was saved with a
+       different version
+     - The file couldn't be opened at
+       all (this might actually cause
+       a more confusing error where
+       nothing seems to happen)
+
+    Press [S] in this menu to save a
+    file. The program will ask for a
+    filename. The filename extension
+    is .cht (Though a bug makes it so
+    it looks like .chts or similar).
+    Simply type your filename in ([ESC]
+    here will put you back in the file
+    open menu instead of closing) and
+    press enter to save the file. You
+    might get "Refused to save the
+    file"; This indicates a
+    permissions issue or some other
+    issue where your OS won't let the
+    program save.
+
+    Pressing ESC in this menu will move
+    you up a directory/folder if
+    possible. This can also be done by
+    choosing the yellow ".."
+
+F4 - Instrument menu:
+    This is where you add, remove, and
+    change instruments. [Z] will create
+    a new instrument on the bottom,
+    [X] will delete the selected
+    instrument, and [C] will change the
+    sound the instrument makes.
+
+    Instruments start out as "Silent",
+    which basically mutes them.
+    Availible instrument types are:
+     - 8 bit LFSR (car engine)
+     - 14 bit LFSR (tv static)
+     - Square
+     - Triangle
+     - Sawtooth
+    PCM and wavetable will be coming 
+    in a future update.
+
+F3 - Pattern menu:
+    This is where your song is actually
+    made! Assuming you have 2
+    instruments, You'll see something
+    like this:
+
+    00 Silent         01 Silent
+00 |.. .. -0000 -0000|.. .. -0000 -0000|
+01 |.. .. -0000 -0000|.. .. -0000 -0000|
+   | And so on...    | And so on...    |
+
+    It will be colored and will look
+    somewhat different, but it should
+    get the idea across. The agenda is:
+
+TT |NO VV Eeeee Eeeee|NO VV Eeeee Eeeee|
+
+    TT - The row number. Nothing else.
+
+    N- Note. Goes from A (A) to L (G#).
+       Each letter is 1 semitone- No
+       sharps or flats!
+
+    O- Octave. Goes from 0 to 9. The
+       octave origin is at A instead of
+       C (D in the tracker.)
+
+    VV- SUPERFINE volume control! You
+        get 256 (64) steps of volume!
+        If you come from Furnace or
+        FamiTracker and/or think this
+        is excessive, you can get a
+        simpler 16 step control using
+        either just the last digit
+        (eg F0 B0 60) or by making both
+        digits the same (eg FF BB 66),
+        which is more accurate. The
+        program's mixer is very simple
+        without any actual volume
+        control, and can handle 4
+        instruments at full (FF)
+        volume. Any more and you get
+        distortion. Technically 04 is
+        the quietest volume because
+        anything lower turns into 0 in
+        the mixing process. Lower
+        volumes are technically
+        synthesized though. Just not
+        mixed.
+
+    Eeeee- Effects! See "---# Effects"
+           above for an effect list.
+
+    This is the only menu that doesn't
+    display hotkeys, so i have to list
+    them here:
+     - [V] increases the view mode
+     - [U] decreases the view mode
+     - Letters A-L will change the
+       note while an N collumn is
+       selected
+     - Numbers 0-9 will change octave
+       while an O collumn is selected
+     - Hexadecimal numbers can change
+       E and eeee collumns
+     - [N] goes to the next order in
+       the song
+     - [P] goes to the previous order
+     - [-] on N or O collums clears the
+       note. on E collums clears the
+       effect.
+
+    If you edit an E collum with an
+    invalid effect nothing will happen.
+    Otherwise the symbol in E will
+    change. eeee is the value the
+    effect uses.
+
+    The view mode decides how much you
+    see. They go like this:
+    0: NO
+    1: NO VV
+    2: NO VV Eeee
+    3: NO VV Eeee Eeee
+    4: NO VV Eeee Eeee Eeee
+    5: NO VV Eeee Eeee Eeee Eeee
+
+    Each effects collumn is completely
+    independent!
+
+F2 - Order menu
+    When it comes to music creation,
+    the pattern menu is for creating
+    small parts of a song, and this
+    menu is made for putting those
+    together!
+    [Z] - Add a new order row
+    [X] - Remove thr rou you're on
+    [W] - Increment the selected pattern
+    [S] - W but with decrement
+    An order row holds as many collums
+    as there are instruments.
+    Instrument 0 has collumn 0, for
+    example.
+    Each square (00 inisially)
+    represents what pattern the
+    instrument should play at that time.
+    When the end of the pattern is
+    reached, a new order is played.
+    You can select what order row to
+    edit in the patten menu with the
+    [N] and [P] keys.
+
+F6 - Options menu
+    This is where you choose your tempo
+    and pattern length.
+    There are two settings right now:
+
+     - Rows per minute (RPM) (Tempo)
+     - Rows per order (Pattern length)
+
+    [W] increases the selected value.
+    [S] decreases the selected value.
+    [Shift+W] and [Shift+S will]
+    increase or decrease by 10 if RPM
+    is selected.
+
+F5 - Order management menu
+    This is where your verious pattern
+    related tasks are done. [X] will
+    delete a pattern and [C] will copy
+    a pattern. (Right now copying
+    doesn't seem to always work
+    correctly)
+
+---# Why chTRACKER?
+
+People may be wondering what leg up
+this chiptune tracker has from others.
+The initial idea for making this
+program came from two things:
+
+1. I wanted to make a chiptune tracker
+2. I wanted to learn more C++
+
+However I soon found out I also wanted
+to make a chiptune tracker that is free
+from the idea of emulating specific
+sound chips. So many ciptune trackers
+want to emulate specific sound chips.
+Whether it's just a 2A03, or there are
+hundreds of chips, they can't be as
+flexible as if you just put together a
+ton of channels. I know modtrackers do
+this, but they force PCM on you. You
+have to use samples. You can't combine
+various square waves, LFSRs and then
+maybe PCM to create your own fantasy
+chip. At least, not as easily. I want
+this to be a place where you can plan
+your own chips or just experiment
+with what you can do just combining
+random things together.

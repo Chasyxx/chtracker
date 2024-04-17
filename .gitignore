@@ -1,0 +1,9 @@
+.clangd
+/dist/
+Makefile
+*.o
+*.oxx
+chtracker
+chtracker.exe
+/src/visual/font.i
+

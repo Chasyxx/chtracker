@@ -1,0 +1,33 @@
+*.cht
+|- "CHTRACKER" - Don't load the file if this is is incorrect
+|- 256b Header
+|  |- 4b File version (00 01 00 00)
+|  |- 2b Rows per minute
+|  |- 2b Rows per pattern
+|  |- 2b Order count
+|  |- 1b Instrument count
+|  `- Unused space filled with 255
+|
+|- (Instrument count * 8, so up to 2040)b Instrument header
+|  `- 8b data per instrument
+|     |- 1b Instrument type
+|     |- 1b Instrument pattern count
+|     ` Unused space filled with 255
+|
+`- Data section
+   |- (Instrument count * Order count, so up to 16'711'425)b Order section
+   |  `- (Instrument count, so up to 255)b Order rows
+   |
+   `- Per-instrument data section
+      `- Patterns
+         `- Rows
+            `- 32b row tag
+               |- 1b Row type (Empty, note, note cut)
+               |- 0.5b Row note 0 (A, A) - 11 (L, G#)
+               |- 0.5b Row octave 0 - 9
+               |- 1b Row volume 0-255
+               |- 20b 4 effects
+               |  |- 1b Effect type
+               |  `- 4b Effect data
+               |
+               `- Unused space filled with 255
