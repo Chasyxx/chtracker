@@ -14,6 +14,7 @@ if on $CFLAGS; then
 else
 	CFLAGS="-O2 -Wall -Wextra -I$PWD/src/headers"
 fi
+PREFIX="/usr/local"
 
 on $BINDIRS && BINDIRS="$BINDIRS "
 BINDIRS="$BINDIRS/usr/local/bin /usr/bin /bin"
@@ -24,7 +25,6 @@ on $CCLD || CCLD=ld
 
 ### OPTIONAL DEPS TRACKING
 	TRACK_PERL=0
-	TRACK_INSTALL=0
 ### END OPTIONAL DEPS TRACKING
 
 print_usage() {
@@ -83,6 +83,10 @@ while [ $# -gt 0 ]; do
 		--disable-sdl)
 			AUTOADD_SDL=0
 			on $LIBS || warning "--disable-sdl used but \$LIBS was not set (linking may fail)"
+			;;
+		--prefix=*)
+			PREFIX="${1#*=}"
+			notice "Prefix set to $PREFIX"
 			;;
 		-h|--help)
 			print_usage
@@ -172,7 +176,7 @@ require		$CXX
 require 	$CC
 want 		expr 		&& COUNT_WARNINGS=1
 prefer 		$CCLD
-want 		install 	&& TRACK_INSTALL=1
+want 		install     || notice "\`install\` is needed for \`make install\`"
 lookfor 	perl 		&& TRACK_PERL=1
 if [ $AUTOADD_SDL -eq 1 ]; then
 	require 	sdl2-config
@@ -227,8 +231,22 @@ if [ $AUTOADD_SDL -eq 1 ]; then
 	CFLAGS="$CFLAGS $(sdl2-config --cflags)"
 	LIBS="$LIBS $(sdl2-config --libs)"
 fi
+
+BINDIR=$PREFIX/bin
+if ! exists $BINDIR; then
+	warning "$BINDIR doesn't exist!"
+fi
+
+DOCDIR=/usr/share/doc
+if ! exists $DOCDIR; then
+	warning "$DOCDIR doesn't exist!"
+fi
+
 notice "Final cflags are $CFLAGS"
-notice "Final libs are $LIBS"
+notice "Final libs are $LIBS" 
+notice "Final install binary directory is $BINDIR"
+notice "Final install documentation directory is $DOCDIR"
+
 
 [ $DRY_RUN -eq 1 ] && exit 0;
 
@@ -312,9 +330,15 @@ CXX=$CXX
 CFLAGS=$CFLAGS
 LIBS=$LIBS
 CCLD=$CCLD
+BINDIR=$BINDIR
+DOCDIR=$DOCDIR
 CLEAN=rm -fv
 
 all: ../chtracker
+
+install: ../chtracker ../doc/help.txt
+	install -D -m 755 ../chtracker \$(BINDIR)/chtracker
+	install -D -m 644 ../doc/help.txt \$(DOCDIR)/chtracker/help.txt
 
 clean:
 	\$(CLEAN) ./*.o
@@ -363,8 +387,11 @@ all:
 clean:
 	@\$(MAKE) -C src clean
 
+install:
+	@\$(MAKE) -C src install
+
 font:
-	@\$(MAKE) -C src/visual font.i
+	@\$(MAKE) -C src/visual font.i	
 EOS
 
 notice "Done creating makefiles"
