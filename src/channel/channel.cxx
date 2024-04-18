@@ -169,7 +169,7 @@ unsigned char audioChannel::gen() {
     float Hz = std::pow(2,(status.note-'A'-48+(effects.arpeggioIndex==0?0:effects.arpeggio[effects.arpeggioIndex-1]))/12.0+status.octave)*440;
     Hz += effects.pitchOffset/512.0;
     if(Hz<=0) return 0; // DC or reverse; we don't want reverse!
-    unsigned char final_volume = static_cast<unsigned char>(static_cast<unsigned short>( std::max(0.0,std::min(255.0,255.0+effects.volumeOffset/2048.0)) )*status.volume/255);
+    unsigned char final_volume = static_cast<unsigned char>(static_cast<unsigned short>( std::min(255.0, std::max(0.0, 255.0+effects.volumeOffset/2048.0)*status.volume/255.0 )));
     float change = 1.0/48000.0*Hz;
     if(channelType == audioChannelType::lfsr8) phase+=change;
     else if(channelType == audioChannelType::lfsr14) phase+=change;

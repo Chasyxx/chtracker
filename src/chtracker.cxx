@@ -70,7 +70,7 @@ unsigned short rowCount = 32;
 
 constexpr unsigned char global_majorVersion = 0x00;
 constexpr unsigned char global_minorVersion = 0x01;
-constexpr unsigned char global_patchVersion = 0x00;
+constexpr unsigned char global_patchVersion = 0x01;
 constexpr unsigned char global_prereleaseVersion = 0x00;
 
 enum state {
