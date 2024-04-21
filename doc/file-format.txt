@@ -26,8 +26,8 @@
                |- 0.5b Row note 0 (A, A) - 11 (L, G#)
                |- 0.5b Row octave 0 - 9
                |- 1b Row volume 0-255
-               |- 20b 4 effects
+               |- 12b 4 effects
                |  |- 1b Effect type
-               |  `- 4b Effect data
+               |  `- 2b Effect data
                |
                `- Unused space filled with 255

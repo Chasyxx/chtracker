@@ -13,7 +13,7 @@
   A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License along with
-  chTRACKER. If not, see <https://www.gnu.org/licenses/>. 
+  chTRACKER. If not, see <https://www.gnu.org/licenses/>.
 
   Chase Taylor @ creset200@gmail.com
 */
@@ -69,8 +69,8 @@ unsigned short rowsPerMinute = 960;
 unsigned short rowCount = 32;
 
 constexpr unsigned char global_majorVersion = 0x00;
-constexpr unsigned char global_minorVersion = 0x01;
-constexpr unsigned char global_patchVersion = 0x01;
+constexpr unsigned char global_minorVersion = 0x02;
+constexpr unsigned char global_patchVersion = 0x00;
 constexpr unsigned char global_prereleaseVersion = 0x00;
 
 enum state {
@@ -83,7 +83,8 @@ enum state {
   order_management_menu,
   options_menu,
   file_menu,
-  save_file_menu
+  save_file_menu,
+  render_menu
 };
 
 struct selection {
@@ -105,10 +106,13 @@ void onOpenMenu() { cursorPosition = {0, 0, 0, {0, 0}}; }
 state global_state = main_menu;
 unsigned long audio_time = 0;
 bool global_playing = false;
+bool global_canPlay = true;
+bool global_freezeAudio = false;
 orderStorage orders(32);
 instrumentStorage instruments;
 orderIndexStorage indexes;
 timerHandler timers;
+bool global_audioFrozen = true;
 
 unsigned char audio_row = -1;
 unsigned short audio_pattern = 0;
@@ -138,6 +142,7 @@ std::string fileMenu_directoryPath = "/";
 
 char *fileMenu_errorText = const_cast<char *>("");
 std::string saveFileMenu_fileName = "file.cht";
+std::string renderMenu_fileName = "render.wav";
 
 int saveFile(std::filesystem::path path) {
   std::ofstream file(path, std::ios::out | std::ios::binary);
@@ -263,20 +268,20 @@ int loadFile(std::filesystem::path filePath) {
   file.read(reinterpret_cast<char *>(buffer), 256);
   for (int i = 0; i < 9; i++) {
     if (buffer[i] != "CHTRACKER"[i]) {
-      fileMenu_errorText = const_cast<char*>("Not a chTRACKER file");
+      fileMenu_errorText = const_cast<char *>("Not a chTRACKER file");
       delete[] buffer;
       file.close();
       return 1;
     }
   }
   if (buffer[9] != global_majorVersion) {
-    fileMenu_errorText = const_cast<char*>("Major version mismatch");
+    fileMenu_errorText = const_cast<char *>("Major version mismatch");
     delete[] buffer;
     file.close();
     return 1;
   }
   if (buffer[10] > global_minorVersion) {
-    fileMenu_errorText = const_cast<char*>("Newer minor version");
+    fileMenu_errorText = const_cast<char *>("Newer minor version");
     delete[] buffer;
     file.close();
     return 1;
@@ -385,6 +390,16 @@ int loadFile(std::filesystem::path filePath) {
 
 void audioCallback(void *userdata, Uint8 *stream, int len) {
   (void)userdata;
+  if (global_freezeAudio) {
+    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
+      stream[i] =
+          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
+    }
+    global_audioFrozen = true;
+    return;
+  }
+  global_audioFrozen = false;
+
   if (global_state == main_menu) {
     for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
       unsigned long t = audio_time + i;
@@ -394,7 +409,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
     return;
   }
 
-  if (global_playing && orders.tableCount() > 0) {
+  if (global_canPlay && global_playing && orders.tableCount() > 0) {
     if (!timers.hasTimer("row"))
       timers.addTimer("row", 48000 * 60 / rowsPerMinute);
     if (!timers.hasTimer("effect"))
@@ -434,6 +449,150 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
       for (unsigned char i = 0; i < instruments.inst_count(); i++) {
         instruments.at(i)->applyFx();
       }
+      timers.resetTimer("effect", 375 * 960 / rowsPerMinute);
+    }
+    if (timers.isComplete("arpeggio")) {
+      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
+        instruments.at(i)->applyArpeggio();
+      }
+      timers.resetTimer("arpeggio", 1500 * 960 / rowsPerMinute);
+    }
+  } else {
+    if (global_canPlay) {
+      if (timers.hasTimer("row"))
+        timers.removeTimer("row");
+      if (timers.hasTimer("effect"))
+        timers.removeTimer("effect");
+      if (timers.hasTimer("arpeggio"))
+        timers.removeTimer("arpeggio");
+      audio_row = -1;
+      audio_pattern = patternMenu_orderIndex;
+      row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
+      for (char i = 0; i < 4; i++)
+        dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
+      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
+        instruments.at(i)->set_row(dummyRow);
+      }
+    }
+    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
+      stream[i] =
+          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
+    }
+  }
+  audio_time += len;
+}
+
+void write32LE(unsigned char *buffer, unsigned int a, size_t &bufferIdx) {
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a    &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8 &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>16&255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>24&255));
+}
+
+void write16LE(unsigned char *buffer, unsigned short a, size_t &bufferIdx) {
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a    &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8 &255));
+}
+
+int renderTo(std::filesystem::path path) {
+  std::ofstream file(path, std::ios::out | std::ios::binary);
+  if (!file || !file.is_open())
+    return 1;
+  // Estimate the song length
+  size_t songLength = 48000 * 60;
+  songLength *= rowCount;
+  songLength *= indexes.rowCount();
+  songLength /= rowsPerMinute;
+  // Make a buffer whose length is the file size
+  unsigned char *buffer = new unsigned char[songLength + 44];
+  size_t headerIdx = 0;
+  // Write a WAV header
+  {
+    // RIFF
+    strcpy(reinterpret_cast<char*>(&buffer[0]), "RIFF"); // up to 3 (null at 4 must be overwritten)
+    headerIdx+=4;
+    // File size - 8 (song size + 36)
+    write32LE(buffer, songLength + 36, headerIdx);
+    // WAVEfmt\0
+    strcpy(reinterpret_cast<char*>(&buffer[headerIdx]), "WAVEfmt "); // up to 15 (null at 16 must be overwritten)
+    headerIdx+=8;
+    // the length of everything before this
+    write32LE(buffer, headerIdx, headerIdx);
+    // PCM
+    write16LE(buffer, 1, headerIdx);
+    // Mono
+    write16LE(buffer, 1, headerIdx);
+    // 48kHz
+    {
+      constexpr unsigned int sampleRate = 48000;
+      write32LE(buffer, sampleRate, headerIdx);
+      // Again (sr*8*1)/8 = sr
+      // (samplerate * bit depth * channel count) / 8
+      write32LE(buffer, sampleRate, headerIdx);
+    }
+    // 8 bit mono
+    write16LE(buffer, 1, headerIdx);
+    // 8 bits
+    write16LE(buffer, 8, headerIdx);
+    // data
+    strcpy(reinterpret_cast<char*>(&buffer[36]), "data"); // up to 39 (null at 40 must be overwritten)
+    headerIdx+=4;
+    // song length
+    write32LE(buffer, songLength, headerIdx);
+  }
+  audio_pattern = 0;
+  audio_row = 0;
+  global_playing = false;
+  global_canPlay = false;
+  global_freezeAudio = true;
+  while(!global_audioFrozen) {};
+
+  if(timers.hasTimer("row"     )) timers.removeTimer("row"     );
+  if(timers.hasTimer("effect"  )) timers.removeTimer("effect"  );
+  if(timers.hasTimer("arpeggio")) timers.removeTimer("arpeggio");
+  timers.addTimer("row", 48000 * 60 / rowsPerMinute);
+  timers.addTimer("effect", 375 * 960 / rowsPerMinute);
+  timers.addTimer("arpeggio", 1500 * 960 / rowsPerMinute);
+  row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
+  for (char i = 0; i < 4; i++)
+    dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
+  for (unsigned char i = 0; i < instruments.inst_count(); i++) {
+    unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
+    row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
+    instruments.at(i)->set_row(dummyRow);
+    instruments.at(i)->set_row(*currentRow);
+  }
+  for (unsigned int audioIdx = 0; audioIdx < songLength; audioIdx++) {
+    unsigned char sample = 0;
+    for (unsigned char instrumentIdx = 0;
+         instrumentIdx < instruments.inst_count(); instrumentIdx++) {
+      sample = static_cast<unsigned char>(
+          std::min(255, static_cast<unsigned short>(sample) +
+                            static_cast<unsigned short>(
+                                instruments.at(instrumentIdx)->gen() / 4)));
+    }
+    buffer[audioIdx + headerIdx] = sample;
+    timers.tick();
+    if (timers.isComplete("row")) {
+      audio_row++;
+      if (audio_row >= orders.at(0)->at(0)->rowCount()) {
+        audio_row = 0;
+        audio_pattern++;
+        if (audio_pattern >= indexes.rowCount()) {
+          audio_pattern = 0;
+        }
+      }
+      timers.resetTimer("row", 0);
+      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
+        unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
+        row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
+        instruments.at(i)->set_row(*currentRow);
+      }
+    }
+    if (timers.isComplete("effect")) {
+      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
+        instruments.at(i)->applyFx();
+      }
       timers.resetTimer("effect", 0);
     }
     if (timers.isComplete("arpeggio")) {
@@ -442,27 +601,19 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
       }
       timers.resetTimer("arpeggio", 0);
     }
-  } else {
-    if (timers.hasTimer("row"))
-      timers.removeTimer("row");
-    if (timers.hasTimer("effect"))
-      timers.removeTimer("effect");
-    if (timers.hasTimer("arpeggio"))
-      timers.removeTimer("arpeggio");
-    audio_row = -1;
-    audio_pattern = patternMenu_orderIndex;
-    row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
-    for (char i = 0; i < 4; i++)
-      dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
-    for (unsigned char i = 0; i < instruments.inst_count(); i++) {
-      instruments.at(i)->set_row(dummyRow);
-    }
-    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
-      stream[i] =
-          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
-    }
   }
-  audio_time += len;
+  if (timers.hasTimer("row"))
+    timers.removeTimer("row");
+  if (timers.hasTimer("effect"))
+    timers.removeTimer("effect");
+  if (timers.hasTimer("arpeggio"))
+    timers.removeTimer("arpeggio");
+  global_canPlay = true;
+  global_freezeAudio = false;
+  file.write(reinterpret_cast<char*>(buffer),songLength+44);
+  file.close();
+  delete[] buffer;
+  return 0;
 }
 
 void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
@@ -562,41 +713,60 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
     quit = 1;
     break;
   case SDL_TEXTINPUT: {
-    if (global_state != save_file_menu)
-      break;
-    saveFileMenu_fileName += event->text.text;
+    if (global_state == save_file_menu)
+      saveFileMenu_fileName += event->text.text;
+    if (global_state == render_menu)
+      renderMenu_fileName += event->text.text;
     break;
   }
   case SDL_KEYDOWN: {
     SDL_Keysym ks = event->key.keysym;
     SDL_Keycode code = ks.sym;
-    if (global_state == save_file_menu) {
+    if (global_state == save_file_menu || global_state == render_menu) {
       if (code == SDLK_ESCAPE) {
         global_state = file_menu;
         onOpenMenu();
       }
-      if (code == SDLK_BACKSPACE && !saveFileMenu_fileName.empty())
-        saveFileMenu_fileName.pop_back();
+      if (code == SDLK_BACKSPACE && !saveFileMenu_fileName.empty()) {
+        if(global_state==save_file_menu) saveFileMenu_fileName.pop_back();
+        else renderMenu_fileName.pop_back();
+      }
       if (code == SDLK_RETURN || code == SDLK_RETURN2) {
         std::filesystem::path path(fileMenu_directoryPath + PATH_SEPERATOR_S +
-                                   saveFileMenu_fileName);
+                                   (global_state == render_menu
+                                        ? renderMenu_fileName
+                                        : saveFileMenu_fileName));
         try {
           if (std::filesystem::exists(path) && cursorPosition.subMenu == 0) {
             cursorPosition.subMenu = 1;
             break;
           }
-          int exit_code = saveFile(path);
-          if (exit_code) {
-            fileMenu_errorText = const_cast<char *>("Refused to save the file");
-            global_state = file_menu;
-            onOpenMenu();
+          if (global_state == save_file_menu) {
+            int exit_code = saveFile(path);
+            if (exit_code) {
+              fileMenu_errorText =
+                  const_cast<char *>("Refused to save the file");
+              global_state = file_menu;
+              onOpenMenu();
+            } else {
+              global_state = pattern_menu;
+              onOpenMenu();
+            };
           } else {
-            global_state = pattern_menu;
-            onOpenMenu();
-          };
+            int exit_code = renderTo(path);
+            if (exit_code) {
+              fileMenu_errorText =
+                  const_cast<char *>("Refused to render to the file");
+              global_state = file_menu;
+              onOpenMenu();
+            } else {
+              global_state = pattern_menu;
+              onOpenMenu();
+            };
+          }
         } catch (std::filesystem::filesystem_error &) {
-          fileMenu_errorText =
-              const_cast<char *>("Filesystem error trying to save the file");
+          fileMenu_errorText = const_cast<char *>(
+              "Filesystem error trying to save/render to the file");
           global_state = file_menu;
           onOpenMenu();
         }
@@ -716,9 +886,9 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                     cursorPosition.y = 0;
                   } else {
                     if (loadFile(entry.path())) {
-                      if(SDL_strlen(fileMenu_errorText) == 0)
+                      if (SDL_strlen(fileMenu_errorText) == 0)
                         fileMenu_errorText =
-                          const_cast<char *>("Refused to load the file");
+                            const_cast<char *>("Refused to load the file");
                     } else {
                       patternMenu_orderIndex = 0;
                       patternMenu_viewMode = 3;
@@ -745,7 +915,8 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           }
           break;
         }
-        global_playing = !global_playing;
+        if (global_canPlay)
+          global_playing = !global_playing;
         break;
       }
       }
@@ -968,9 +1139,9 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             e.effect =
                 (e.effect & ~(static_cast<unsigned short>(0xF) << shift)) |
                 value << shift;
-            if (effectIdx == 4) {
+            if (idx == 4) {
               cursorPosition.y++;
-              cursorPosition.x -= 4;
+              cursorPosition.x -= 3;
             } else
               cursorPosition.x++;
           }
@@ -1106,6 +1277,12 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             }
           } else if (global_state == file_menu) {
             global_state = save_file_menu;
+          }
+          break;
+        }
+        case 'r': {
+          if (global_state == file_menu) {
+            global_state = render_menu;
           }
           break;
         }
@@ -1292,17 +1469,20 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       versionString += ".";
       visual_numberToString(str, global_patchVersion);
       versionString += str;
-      if(global_prereleaseVersion > 0) {
+      if (global_prereleaseVersion > 0) {
         visual_numberToString(str, global_prereleaseVersion);
         versionString += "-";
         versionString += str;
       }
-      text_drawText(renderer, const_cast<char *>(versionString.c_str()), 2,
-                    0, windowHeight-16, visual_whiteText,
-                    0, fontTileCountW);
-      text_drawText(renderer, const_cast<char *>("NO WARRANTY for his program! The copyright holders will not be held liable for damages arising from this program.\nCopyright \xcc 2024 Chase Taylor. Licensed under GPL."), 1,
-                    0, 0, visual_whiteText,
-                    0, fontTileCountW*2);
+      text_drawText(renderer, const_cast<char *>(versionString.c_str()), 2, 0,
+                    windowHeight - 16, visual_whiteText, 0, fontTileCountW);
+      text_drawText(
+          renderer,
+          const_cast<char *>(
+              "NO WARRANTY for his program! The copyright holders will not be "
+              "held liable for damages arising from this program.\nCopyright "
+              "\xcc 2024 Chase Taylor. Licensed under GPL."),
+          1, 0, 0, visual_whiteText, 0, fontTileCountW * 2);
     }
   } else {
     short xOffset = 0;
@@ -1902,13 +2082,15 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Return to load a file"), 2, 0,
                     64, visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, const_cast<char *>("R to render"), 2, 0, 80,
+                    visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("ESC to go to parent dir."), 2,
-                    0, 80, visual_whiteText, 0, fontTileCountW);
+                    0, 96, visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer,
                     const_cast<char *>(
                         (fileMenu_directoryPath + PATH_SEPERATOR_S).c_str()),
-                    2, 0, 96, visual_whiteText, 0, INT_MAX);
-      unsigned short y = 112;
+                    2, 0, 112, visual_whiteText, 0, INT_MAX);
+      unsigned short y = 128;
       int i = 0;
       int initialEntry = std::max(0, static_cast<int>(cursorPosition.y) -
                                          static_cast<int>(fontTileCountH / 2));
@@ -1958,10 +2140,30 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
                       const_cast<char *>("That file exists, are you sure?"), 2,
-                      0, 32, visual_redText, 0, fontTileCountW);
+                      0, windowHeight-16, visual_redText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Type a filename:"), 2, 0, 128,
                     visual_whiteText, 0, fontTileCountW - 10);
       text_drawText(renderer, const_cast<char *>(saveFileMenu_fileName.c_str()),
+                    2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
+      break;
+    }
+    case render_menu: {
+      text_drawText(renderer, const_cast<char *>("Rendering to"), 2, 0, 16,
+                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer,
+                    const_cast<char *>(
+                        (fileMenu_directoryPath + PATH_SEPERATOR_S).c_str()),
+                    2, 16*13, 16, visual_whiteText, 0, fontTileCountW - 13);
+      if (cursorPosition.subMenu == 1)
+        text_drawText(renderer,
+                      const_cast<char *>("That file exists, are you sure?"), 2,
+                      0, windowHeight-32, visual_redText, 0, fontTileCountW);
+      text_drawText(renderer,
+                    const_cast<char *>("Program may not respond during render"), 2,
+                    0, windowHeight-16, visual_yellowText, 0, fontTileCountW);
+      text_drawText(renderer, const_cast<char *>("Type a filename:"), 2, 0, 128,
+                    visual_whiteText, 0, fontTileCountW - 10);
+      text_drawText(renderer, const_cast<char *>(renderMenu_fileName.c_str()),
                     2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }

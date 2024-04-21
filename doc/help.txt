@@ -148,6 +148,12 @@ F7 - File menu:
     issue where your OS won't let the
     program save.
 
+    Press [R] in this menu to render to
+    a file. The program can render to
+    .wav files! If you need another
+    format, you'll need to convert the
+    .wav to that format.
+
     Pressing ESC in this menu will move
     you up a directory/folder if
     possible. This can also be done by
