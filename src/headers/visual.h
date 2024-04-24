@@ -64,7 +64,7 @@ extern const char visual_charCodes[];
  * \returns 1 if no character is found (ususally rendered as a crossed out box
  * that is also explicitly tagged as `'\x1b'`)
  */
-char indexes_charToIdx(char c);
+int indexes_charToIdx(char c);
 
 /**
  * Takes a number and converts it to a string (Base 10).

@@ -126,7 +126,7 @@ struct CursorPos {
 constexpr unsigned char global_majorVersion /**/ = 0x00;
 constexpr unsigned char global_minorVersion /**/ = 0x03;
 constexpr unsigned char global_patchVersion /**/ = 0x00;
-constexpr unsigned char global_prereleaseVersion = 0x01;
+constexpr unsigned char global_prereleaseVersion = 0x02;
 
 constexpr unsigned char patternMenu_instrumentCollumnWidth[] = {3,  6,  12,
                                                                 18, 24, 30};
@@ -1580,7 +1580,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       text_drawText(
           renderer,
           const_cast<char *>(
-              "NO WARRANTY for his program! The copyright holders will not be "
+              "NO WARRANTY for this program! The copyright holders will not be "
               "held liable for damages arising from this program.\nCopyright "
               "\xcc 2024 Chase Taylor. Licensed under GPL."),
           1, 0, 0, visual_whiteText, 0, fontTileCountW * 2);
