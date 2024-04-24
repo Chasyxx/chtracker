@@ -173,7 +173,7 @@ instrumentStorage instrumentSystem;
  *********/
 
 CursorPos /**/ cursorPosition;
-GlobalMenus    global_state /*******/ = GlobalMenus::main_menu;
+GlobalMenus    global_currentMenu /*******/ = GlobalMenus::main_menu;
 unsigned short patternMenu_orderIndex = 0;
 char /*******/ patternMenu_viewMode   = 3;
 #if defined(_WIN32)
@@ -510,6 +510,7 @@ int loadFile(std::filesystem::path filePath) {
 }
 
 int renderTo(std::filesystem::path path) {
+  if(orders.tableCount() < 1) return 1;
   std::ofstream file(path, std::ios::out | std::ios::binary);
   if (!file || !file.is_open())
     return 1;
@@ -647,7 +648,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
   }
   audio_isFrozen = false;
 
-  if (global_state == GlobalMenus::main_menu) {
+  if (global_currentMenu == GlobalMenus::main_menu) {
     for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
       unsigned long t = audio_time + i;
       stream[i] = (t * 3 / 2 & t >> 8) | (t * 5 / 4 & t >> 11);
@@ -774,7 +775,7 @@ void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
  *********************************/
 
 void setLimits(unsigned int &limitX, unsigned int &limitY) {
-  switch (global_state) {
+  switch (global_currentMenu) {
   case GlobalMenus::instrument_menu: {
     limitX = 0;
     limitY = instrumentSystem.inst_count() - 1;
@@ -834,27 +835,27 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
     quit = 1;
     break;
   case SDL_TEXTINPUT: {
-    if (global_state == GlobalMenus::save_file_menu)
+    if (global_currentMenu == GlobalMenus::save_file_menu)
       saveFileMenu_fileName += event->text.text;
-    if (global_state == GlobalMenus::render_menu)
+    if (global_currentMenu == GlobalMenus::render_menu)
       renderMenu_fileName += event->text.text;
     break;
   }
   case SDL_KEYDOWN: {
     SDL_Keysym ks = event->key.keysym;
     SDL_Keycode code = ks.sym;
-    if (global_state == GlobalMenus::save_file_menu || global_state == GlobalMenus::render_menu) {
+    if (global_currentMenu == GlobalMenus::save_file_menu || global_currentMenu == GlobalMenus::render_menu) {
       if (code == SDLK_ESCAPE) {
-        global_state = GlobalMenus::file_menu;
+        global_currentMenu = GlobalMenus::file_menu;
         onOpenMenu();
       }
       if (code == SDLK_BACKSPACE && !saveFileMenu_fileName.empty()) {
-        if(global_state==GlobalMenus::save_file_menu && !saveFileMenu_fileName.empty()) saveFileMenu_fileName.pop_back();
+        if(global_currentMenu==GlobalMenus::save_file_menu && !saveFileMenu_fileName.empty()) saveFileMenu_fileName.pop_back();
         else if(!renderMenu_fileName.empty()) renderMenu_fileName.pop_back();
       }
       if (code == SDLK_RETURN || code == SDLK_RETURN2) {
         std::filesystem::path path(fileMenu_directoryPath + PATH_SEPERATOR_S +
-                                   (global_state == GlobalMenus::render_menu
+                                   (global_currentMenu == GlobalMenus::render_menu
                                         ? renderMenu_fileName
                                         : saveFileMenu_fileName));
         try {
@@ -862,15 +863,15 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             cursorPosition.subMenu = 1;
             break;
           }
-          if (global_state == GlobalMenus::save_file_menu) {
+          if (global_currentMenu == GlobalMenus::save_file_menu) {
             int exit_code = saveFile(path);
             if (exit_code) {
               fileMenu_errorText =
                   const_cast<char *>("Refused to save the file");
-              global_state = GlobalMenus::file_menu;
+              global_currentMenu = GlobalMenus::file_menu;
               onOpenMenu();
             } else {
-              global_state = GlobalMenus::pattern_menu;
+              global_currentMenu = GlobalMenus::pattern_menu;
               onOpenMenu();
             };
           } else {
@@ -878,37 +879,37 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             if (exit_code) {
               fileMenu_errorText =
                   const_cast<char *>("Refused to render to the file");
-              global_state = GlobalMenus::file_menu;
+              global_currentMenu = GlobalMenus::file_menu;
               onOpenMenu();
             } else {
-              global_state = GlobalMenus::pattern_menu;
+              global_currentMenu = GlobalMenus::pattern_menu;
               onOpenMenu();
             };
           }
         } catch (std::filesystem::filesystem_error &) {
           fileMenu_errorText = const_cast<char *>(
               "Filesystem error trying to save/render to the file");
-          global_state = GlobalMenus::file_menu;
+          global_currentMenu = GlobalMenus::file_menu;
           onOpenMenu();
         }
       }
       break;
     }
-    if (global_state == GlobalMenus::main_menu) {
+    if (global_currentMenu == GlobalMenus::main_menu) {
       switch (code) {
       case SDLK_ESCAPE: {
         quit = 1;
         break;
       }
       case 'z': {
-        global_state = GlobalMenus::help_menu;
+        global_currentMenu = GlobalMenus::help_menu;
         break;
       }
       }
     } else {
       switch (code) {
       case SDLK_ESCAPE: {
-        if (global_state == GlobalMenus::file_menu) {
+        if (global_currentMenu == GlobalMenus::file_menu) {
           if (std::filesystem::path(fileMenu_directoryPath).has_parent_path()) {
             fileMenu_directoryPath =
                 std::filesystem::path(fileMenu_directoryPath)
@@ -922,37 +923,37 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
         break;
       }
       case SDLK_F1: {
-        global_state = GlobalMenus::help_menu;
+        global_currentMenu = GlobalMenus::help_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F2: {
-        global_state = GlobalMenus::order_menu;
+        global_currentMenu = GlobalMenus::order_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F3: {
-        global_state = GlobalMenus::pattern_menu;
+        global_currentMenu = GlobalMenus::pattern_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F4: {
-        global_state = GlobalMenus::instrument_menu;
+        global_currentMenu = GlobalMenus::instrument_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F5: {
-        global_state = GlobalMenus::order_management_menu;
+        global_currentMenu = GlobalMenus::order_management_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F6: {
-        global_state = GlobalMenus::options_menu;
+        global_currentMenu = GlobalMenus::options_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F7: {
-        global_state = GlobalMenus::file_menu;
+        global_currentMenu = GlobalMenus::file_menu;
         onOpenMenu();
         break;
       }
@@ -978,7 +979,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
       }
       case SDLK_RETURN:
       case SDLK_RETURN2: {
-        if (global_state == GlobalMenus::file_menu) {
+        if (global_currentMenu == GlobalMenus::file_menu) {
           int i = 0;
           bool found = false;
           fileMenu_errorText = const_cast<char *>("");
@@ -1013,7 +1014,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                     } else {
                       patternMenu_orderIndex = 0;
                       patternMenu_viewMode = 3;
-                      global_state = GlobalMenus::pattern_menu;
+                      global_currentMenu = GlobalMenus::pattern_menu;
                       onOpenMenu();
                     };
                   }
@@ -1041,7 +1042,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
         break;
       }
       }
-      if (global_state == GlobalMenus::pattern_menu) {
+      if (global_currentMenu == GlobalMenus::pattern_menu) {
         switch (code) {
         case 'p': {
           if (orders.tableCount() == 0)
@@ -1270,26 +1271,26 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
       } else {
         switch (code) {
         case 'z': {
-          if (global_state == GlobalMenus::instrument_menu &&
+          if (global_currentMenu == GlobalMenus::instrument_menu &&
               instrumentSystem.inst_count() < 254) {
             instrumentSystem.add_inst(audioChannelType::null);
             orders.at(orders.addTable())->add_order();
             indexes.addInst();
-          } else if (global_state == GlobalMenus::order_menu) {
+          } else if (global_currentMenu == GlobalMenus::order_menu) {
             indexes.addRow();
           }
           break;
         }
         case 'x': {
-          if (global_state == GlobalMenus::instrument_menu && instrumentSystem.inst_count() > 0) {
+          if (global_currentMenu == GlobalMenus::instrument_menu && instrumentSystem.inst_count() > 0) {
             instrumentSystem.remove_inst(cursorPosition.y);
             orders.removeTable(cursorPosition.y);
             indexes.removeInst(cursorPosition.y);
             if (orders.tableCount() == 0)
               patternMenu_orderIndex = 0;
-          } else if (global_state == GlobalMenus::order_menu && indexes.rowCount() > 1) {
+          } else if (global_currentMenu == GlobalMenus::order_menu && indexes.rowCount() > 1) {
             indexes.removeRow(cursorPosition.y);
-          } else if (global_state == GlobalMenus::order_management_menu &&
+          } else if (global_currentMenu == GlobalMenus::order_management_menu &&
                      cursorPosition.subMenu == 0 && orders.tableCount() > 0) {
             if (cursorPosition.x == 0)
               break;
@@ -1309,9 +1310,9 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           break;
         }
         case 'c': {
-          if (global_state == GlobalMenus::instrument_menu && instrumentSystem.inst_count() > 0) {
+          if (global_currentMenu == GlobalMenus::instrument_menu && instrumentSystem.inst_count() > 0) {
             instrumentSystem.at(cursorPosition.y)->cycle_type();
-          } else if (global_state == GlobalMenus::order_management_menu &&
+          } else if (global_currentMenu == GlobalMenus::order_management_menu &&
                      orders.tableCount() > 0) {
             if (cursorPosition.subMenu == 0) {
               cursorPosition.selection.x = cursorPosition.x;
@@ -1350,14 +1351,14 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           break;
         }
         case 'w': {
-          if (global_state == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
+          if (global_currentMenu == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
             if (indexes.at(cursorPosition.y)->at(cursorPosition.x) < 254)
               indexes.at(cursorPosition.y)->increment(cursorPosition.x);
 
             while (indexes.at(cursorPosition.y)->at(cursorPosition.x) >=
                    orders.at(cursorPosition.x)->order_count())
               orders.at(cursorPosition.x)->add_order();
-          } else if (global_state == GlobalMenus::options_menu) {
+          } else if (global_currentMenu == GlobalMenus::options_menu) {
             if (cursorPosition.y == 0) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
@@ -1377,10 +1378,10 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           break;
         }
         case 's': {
-          if (global_state == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
+          if (global_currentMenu == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
             if (indexes.at(cursorPosition.y)->at(cursorPosition.x) > 0)
               indexes.at(cursorPosition.y)->decrement(cursorPosition.x);
-          } else if (global_state == GlobalMenus::options_menu) {
+          } else if (global_currentMenu == GlobalMenus::options_menu) {
             if (cursorPosition.y == 0) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
@@ -1396,20 +1397,24 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                 orders.setRowCount(paternLength);
               }
             }
-          } else if (global_state == GlobalMenus::file_menu) {
-            global_state = GlobalMenus::save_file_menu;
-          }
-          break;
-        }
-        case 'r': {
-          if (global_state == GlobalMenus::file_menu) {
-            global_state = GlobalMenus::render_menu;
           }
           break;
         }
         }
       }
       break;
+    }
+    break;
+  }
+  case SDL_KEYUP: {
+    SDL_Keysym ks = event->key.keysym;
+    SDL_Keycode code = ks.sym;
+    if(global_currentMenu == GlobalMenus::file_menu) {
+      if(code == 's') global_currentMenu = GlobalMenus::save_file_menu;
+      else if(code == 'r') {
+        if(orders.tableCount() < 1) fileMenu_errorText = const_cast<char*>("Refusing to render without instruments");
+        else global_currentMenu = GlobalMenus::render_menu;
+      }
     }
   }
   }
@@ -1539,7 +1544,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
   // *not* background
   int i = 0;
   const char *str = "chTRACKER";
-  if (global_state == GlobalMenus::main_menu) {
+  if (global_currentMenu == GlobalMenus::main_menu) {
     while (str[i] != 0) {
       text_drawBigChar(
           renderer, indexes_charToIdx(str[i]), 4,
@@ -1583,37 +1588,37 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
   } else {
     short xOffset = 0;
     text_drawText(renderer, const_cast<char *>("Help!"), 1, xOffset, 0,
-                  visual_whiteText, global_state == GlobalMenus::help_menu, windowWidth / 8);
+                  visual_whiteText, global_currentMenu == GlobalMenus::help_menu, windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("Order"), 1, xOffset, 0,
-                  visual_whiteText, global_state == GlobalMenus::order_menu,
+                  visual_whiteText, global_currentMenu == GlobalMenus::order_menu,
                   windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("Pat."), 1, xOffset, 0,
-                  visual_whiteText, global_state == GlobalMenus::pattern_menu,
+                  visual_whiteText, global_currentMenu == GlobalMenus::pattern_menu,
                   windowWidth / 8);
     xOffset += 5 * 8;
     text_drawText(renderer, const_cast<char *>("Inst."), 1, xOffset, 0,
-                  visual_whiteText, global_state == GlobalMenus::instrument_menu,
+                  visual_whiteText, global_currentMenu == GlobalMenus::instrument_menu,
                   windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("OrdMan."), 1, xOffset, 0,
-                  visual_whiteText, global_state == GlobalMenus::order_management_menu,
+                  visual_whiteText, global_currentMenu == GlobalMenus::order_management_menu,
                   windowWidth / 8);
     xOffset += 8 * 8;
     text_drawText(renderer, const_cast<char *>("Options"), 1, xOffset, 0,
-                  visual_whiteText, global_state == GlobalMenus::options_menu,
+                  visual_whiteText, global_currentMenu == GlobalMenus::options_menu,
                   windowWidth / 8);
     xOffset += 8 * 8;
     text_drawText(renderer, const_cast<char *>("File"), 1, xOffset, 0,
-                  visual_whiteText, global_state == GlobalMenus::file_menu, windowWidth / 8);
+                  visual_whiteText, global_currentMenu == GlobalMenus::file_menu, windowWidth / 8);
     // l+=6;
     // text_drawText(renderer, const_cast<char *>("Order"), 1, l*8, 0,
     // visual_whiteText, global_state==preset_menu, windowWidth/8);
     SDL_SetRenderDrawColor(renderer, 63, 127, 255, 255);
     SDL_Rect borderRectangle = {0, 8, windowWidth, 8};
     SDL_RenderFillRect(renderer, &borderRectangle);
-    switch (global_state) {
+    switch (global_currentMenu) {
     case GlobalMenus::main_menu: {
       text_drawText(renderer, const_cast<char *>("Error"), 3, 18, 18,
                     visual_redText, 1, 10);
