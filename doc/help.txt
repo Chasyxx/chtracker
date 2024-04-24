@@ -41,16 +41,13 @@ F4: Instrument menu - Where you add
 F5: Order management menu - This is
     where you delete and clone orders.
 
-F6: Options menu - Currently where you
-    set RPM and how many rows are in a
-    single pattern.
+F6: Options menu - Set tempo and
+    pattern length here.
 
 F7: File menu - A built in file picker
-    for the program. It should start in
-    your home directory/folder. I'm
-    still not quite sure how this acts
-    with Windows, but it should work
-    fine.
+    for the program. On linux, it
+    starts in your home directory.
+    On Windows, it starts in C:\.
 
 This program assumes you have basic
 knowledge on how to use a chiptune
@@ -63,11 +60,11 @@ Most of the menus have information on
 what key to press. Press ESC outside of
 the file menu to quit the program. This
 currently doesn't check for unsaved
-changes (however that is planned), so
-watch out!
+changes (however that is coming very
+soon), so watch out and save often!
 
 In any menu (Except this one!), there
-is a cursor (represented by the
+can be a cursor (represented by the
 foreground and background being
 swapped) and you can move it using the
 arrow keys.
@@ -309,9 +306,11 @@ F5 - Order management menu
     This is where your verious pattern
     related tasks are done. [X] will
     delete a pattern and [C] will copy
-    a pattern. (Right now copying
-    doesn't seem to always work
-    correctly)
+    a pattern. [C] will take you to a
+    seperate menu where [Right] and
+    [Left] will select an instrument to
+    clone to. Press [C] again to make
+    the clone.
 
 ---# Why chTRACKER?
 
