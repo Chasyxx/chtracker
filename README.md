@@ -6,7 +6,7 @@ See doc/help.txt: <https://github.com/Chasyxx/chtracker/blob/main/doc/help.txt>.
 ## Compilation
 Ensure you're in the source tree (the directory contaaining `src`, not `src` itself).
 1. `./configure.sh --clean` - Best to make sure you have a clean source tree.
-2. `./connfigure.sh` - This sets everything up for you.
+2. `./configure.sh` - This sets everything up for you.
  * If you have MinGW-w64 and want to make a Windows build, try the below command instead. It assumes you cross-compiled SDL statically to `$HOME/.local/sdl2-mingw-w64`.
 3. `make` - Time to build the source tree!
 
@@ -17,8 +17,7 @@ CFLAGS="-O2 -I$HOME/.local/sdl2-mingw-w64/include/ -Dmain=SDL_main -I$PWD/src/he
 ```
 
 ## If you are using a language server
-After configuring, you'll need to make some changes to the language server you're using to ensure you don't get any errors that shouldn't be there:
-1. Add the headers folder (run `echo $(pwd)/src/headers` to get a path) to your include path
+After configuring, you'll need to do some things to ensure you don't get any errors that shouldn't be there:
+1. Add the headers folder (run `echo $(pwd)/src/headers` to get a path) to your include path (*This is just for the language server, the build itself has this done by the configure script*)
 2. `make font` removes an error in `visual.o` about `font.i` not existing.
 
-**These only influence your language server. The build itaelf is completely handled by the configure script and makefiles.**

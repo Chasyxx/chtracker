@@ -18,6 +18,11 @@
   Chase Taylor @ creset200@gmail.com
 */
 
+/***********************************
+ *         INCLUDE SECTION         *
+ * All #include directives go here *
+ ***********************************/
+
 #include <SDL2/SDL.h>
 
 #include <SDL2/SDL_error.h>
@@ -53,27 +58,39 @@ extern "C" {
 #include "order.hxx"
 #include "timer.hxx"
 
+int lastWindowWidth, lastWindowHeight;
+
+/**************************************
+ *                                    *
+ *            MACRO SECTION           *
+ *   All #define DIRECTIVES GO HERE   *
+ *                                    *
+ **************************************/
+
 #define TILE_SIZE 96
 #define TILE_SIZE_F 96.0
 
-// Quit SDL and terminate with code.
-void quit(int code = 0) {
-  SDL_Quit();
-  exit(code);
-}
+#if defined(_WIN32)
+#define PATH_SEPERATOR_S "\\"
+#define PATH_SEPERATOR '\\'
+#elif defined(__linux__) || defined(__APPLE__)
+#define PATH_SEPERATOR_S "/"
+#define PATH_SEPERATOR '/'
+#define _POSIX
+#else
+#define PATH_SEPERATOR_S "/"
+#define PATH_SEPERATOR '/'
+#define HOPEFULLY_POSIX
+#endif
 
-unsigned long video_frame;
-int lastWindowWidth, lastWindowHeight;
+/***********************************************
+ *                                             *
+ *           ENUM AND SCRUCT SECTION           *
+ *   All enum AND struct DEFINITIONS GO HERE   *
+ *                                             *
+ ***********************************************/
 
-unsigned short rowsPerMinute = 960;
-unsigned short rowCount = 32;
-
-constexpr unsigned char global_majorVersion = 0x00;
-constexpr unsigned char global_minorVersion = 0x02;
-constexpr unsigned char global_patchVersion = 0x00;
-constexpr unsigned char global_prereleaseVersion = 0x00;
-
-enum state {
+enum class GlobalMenus {
   main_menu,
 
   help_menu,
@@ -87,62 +104,166 @@ enum state {
   render_menu
 };
 
-struct selection {
+struct Selection {
   unsigned int x = 0;
   unsigned int y = 0;
 };
 
-struct cursorPos {
+struct CursorPos {
   unsigned int x = 0;
   unsigned int y = 0;
   unsigned char subMenu = 0;
-  struct selection selection;
+  struct Selection selection;
 };
 
-cursorPos cursorPosition;
+/********************************************************
+ *                                                      *
+ *                  CONSTEXPR SECTION                   *
+ *   All GLOBAL const AND constexpr VARIABLES GO HERE   *
+ *                                                      *
+ ********************************************************/
 
-void onOpenMenu() { cursorPosition = {0, 0, 0, {0, 0}}; }
+constexpr unsigned char global_majorVersion /**/ = 0x00;
+constexpr unsigned char global_minorVersion /**/ = 0x03;
+constexpr unsigned char global_patchVersion /**/ = 0x00;
+constexpr unsigned char global_prereleaseVersion = 0x01;
 
-state global_state = main_menu;
-unsigned long audio_time = 0;
-bool global_playing = false;
-bool global_canPlay = true;
-bool global_freezeAudio = false;
-orderStorage orders(32);
-instrumentStorage instruments;
-orderIndexStorage indexes;
-timerHandler timers;
-bool global_audioFrozen = true;
-
-unsigned char audio_row = -1;
-unsigned short audio_pattern = 0;
-
-unsigned short patternMenu_orderIndex = 0;
-char patternMenu_viewMode = 3;
 constexpr unsigned char patternMenu_instrumentCollumnWidth[] = {3,  6,  12,
                                                                 18, 24, 30};
 constexpr unsigned char patternMenu_instrumentVariableCount[] = {2,  4,  9,
                                                                  14, 19, 24};
 
-#if defined(_WIN32)
-std::string fileMenu_directoryPath = "C:\\";
-#define PATH_SEPERATOR_S "\\"
-#define PATH_SEPERATOR '\\'
-#elif defined(__linux__) || defined(__APPLE__)
-std::string fileMenu_directoryPath = "/";
-#define PATH_SEPERATOR_S "/"
-#define PATH_SEPERATOR '/'
-#define _POSIX
-#else
-std::string fileMenu_directoryPath = "/";
-#define PATH_SEPERATOR_S "/"
-#define PATH_SEPERATOR '/'
-#define HOPEFULLY_POSIX
-#endif
+/************************************
+ *                                  *
+ *     GLOBAL VARIABLES SECTION     *
+ *   All GLOBAL VARIABLES GO HERE   *
+ *                                  *
+ ************************************/
 
-char *fileMenu_errorText = const_cast<char *>("");
-std::string saveFileMenu_fileName = "file.cht";
-std::string renderMenu_fileName = "render.wav";
+/*********
+ * Audio *
+ *********/
+
+unsigned long  audio_time = 0;
+unsigned char  audio_row = -1;
+unsigned short audio_pattern = 0;
+bool /*******/ audio_isPlaying = false;
+bool /*******/ audio_canPlay = true;
+bool /*******/ audio_freeze = false;
+bool /*******/ audio_isFrozen = true;
+unsigned short audio_tempo = 960;
+
+/**************
+ * Music data *
+ **************/
+
+orderStorage /**/ orders(32);
+orderIndexStorage indexes;
+unsigned short    paternLength = 32;
+
+/***********
+ * Systems *
+ ***********/
+
+timerHandler /**/ timerSystem;
+instrumentStorage instrumentSystem;
+
+/*********
+ * (G)UI *
+ *********/
+
+CursorPos /**/ cursorPosition;
+GlobalMenus    global_state /*******/ = GlobalMenus::main_menu;
+unsigned short patternMenu_orderIndex = 0;
+char /*******/ patternMenu_viewMode   = 3;
+#if defined(_WIN32)
+std::string    fileMenu_directoryPath = "C:\\";
+#else
+std::string    fileMenu_directoryPath = "/";
+#endif
+char* /******/ fileMenu_errorText     = const_cast<char *>("");
+std::string    saveFileMenu_fileName  = "file.cht";
+std::string    renderMenu_fileName    = "render.wav";
+
+/*****************************
+ *                           *
+ *     FUNCTIONS SECTION     *
+ *   ALL FUNCTIONS GO HERE   *
+ *                           *
+ *****************************/
+
+void onOpenMenu() { cursorPosition = {0, 0, 0, {0, 0}}; }
+// Quit SDL and terminate with code.
+void quit(int code = 0) {
+  SDL_Quit();
+  exit(code);
+}
+
+/***********************************
+ * Data functions (for wav header) *
+ ***********************************/
+
+void write32LE(unsigned char *buffer, unsigned int a, size_t &bufferIdx) {
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a    &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8 &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>16&255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>24&255));
+}
+
+void write16LE(unsigned char *buffer, unsigned short a, size_t &bufferIdx) {
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a    &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8 &255));
+}
+
+/***********************************
+ * Number to hexadecimal functions *
+ ***********************************/
+
+char hex(char a) {
+  a &= 15;
+  if (a > 9)
+    return 'A' + a - 10;
+  else
+    return '0' + a;
+}
+
+void hex2(unsigned char a, char &c1, char &c2) {
+  if (a >> 4 > 9)
+    c1 = 'A' + (a >> 4) - 10;
+  else
+    c1 = '0' + (a >> 4);
+
+  if ((a & 15) > 9)
+    c2 = 'A' + (a & 15) - 10;
+  else
+    c2 = '0' + (a & 15);
+}
+
+void hex4(unsigned short a, char *s) {
+  if ((a >> 12 & 15) > 9)
+    s[0] = 'A' + (a >> 12 & 15) - 10;
+  else
+    s[0] = '0' + (a >> 12 & 15);
+
+  if ((a >> 8 & 15) > 9)
+    s[1] = 'A' + (a >> 8 & 15) - 10;
+  else
+    s[1] = '0' + (a >> 8 & 15);
+
+  if ((a >> 4 & 15) > 9)
+    s[2] = 'A' + (a >> 4 & 15) - 10;
+  else
+    s[2] = '0' + (a >> 4 & 15);
+
+  if ((a & 15) > 9)
+    s[3] = 'A' + (a & 15) - 10;
+  else
+    s[3] = '0' + (a & 15);
+}
+
+/******************
+ * File functions *
+ ******************/
 
 int saveFile(std::filesystem::path path) {
   std::ofstream file(path, std::ios::out | std::ios::binary);
@@ -158,18 +279,18 @@ int saveFile(std::filesystem::path path) {
   buffer[11] = global_patchVersion;
   buffer[12] = global_prereleaseVersion;
 
-  buffer[13] = static_cast<unsigned char>(rowsPerMinute >> 8);
-  buffer[14] = static_cast<unsigned char>(rowsPerMinute & 255);
+  buffer[13] = static_cast<unsigned char>(audio_tempo >> 8);
+  buffer[14] = static_cast<unsigned char>(audio_tempo & 255);
 
-  buffer[15] = static_cast<unsigned char>(rowCount >> 8);
-  buffer[16] = static_cast<unsigned char>(rowCount & 255);
+  buffer[15] = static_cast<unsigned char>(paternLength >> 8);
+  buffer[16] = static_cast<unsigned char>(paternLength & 255);
 
   {
     unsigned short orderCount = indexes.rowCount();
     buffer[17] = static_cast<unsigned char>(orderCount >> 8);
     buffer[18] = static_cast<unsigned char>(orderCount & 255);
   }
-  buffer[19] = instruments.inst_count();
+  buffer[19] = instrumentSystem.inst_count();
 
   // Fill unused space with FF
   for (int i = 20; i < 256; i++) {
@@ -177,9 +298,9 @@ int saveFile(std::filesystem::path path) {
   }
   file.write(reinterpret_cast<const char *>(buffer), 256);
   delete[] buffer;
-  for (int i = 0; i < instruments.inst_count(); i++) {
+  for (int i = 0; i < instrumentSystem.inst_count(); i++) {
     buffer = new unsigned char[8];
-    buffer[0] = static_cast<unsigned char>(instruments.at(i)->get_type());
+    buffer[0] = static_cast<unsigned char>(instrumentSystem.at(i)->get_type());
     buffer[1] = orders.at(i)->order_count();
     buffer[2] = 0xff;
     buffer[3] = 0xff;
@@ -258,8 +379,8 @@ int saveFile(std::filesystem::path path) {
 }
 
 int loadFile(std::filesystem::path filePath) {
-  global_playing = false;
-  while (timers.hasTimer("row"))
+  audio_isPlaying = false;
+  while (timerSystem.hasTimer("row"))
     ;
   std::ifstream file(filePath, std::ios::in | std::ios::binary);
   if (!file || !file.is_open())
@@ -302,12 +423,12 @@ int loadFile(std::filesystem::path filePath) {
 
   buffer = new unsigned char[local_instrumentCount * 8];
   file.read(reinterpret_cast<char *>(buffer), local_instrumentCount * 8);
-  while (instruments.inst_count() > 0)
-    instruments.remove_inst(instruments.inst_count() - 1);
+  while (instrumentSystem.inst_count() > 0)
+    instrumentSystem.remove_inst(instrumentSystem.inst_count() - 1);
   for (unsigned char instrumentIdx = 0; instrumentIdx < local_instrumentCount;
        instrumentIdx++) {
     unsigned char *i = buffer + (instrumentIdx * 8);
-    instruments.add_inst(static_cast<audioChannelType>(i[0]));
+    instrumentSystem.add_inst(static_cast<audioChannelType>(i[0]));
     instrumentOrderCounts.push_back(i[1]);
   }
   delete[] buffer;
@@ -382,116 +503,10 @@ int loadFile(std::filesystem::path filePath) {
     delete[] buffer;
   }
 
-  rowsPerMinute = local_rowsPerMinute;
-  rowCount = local_rowsPerPattern;
+  audio_tempo = local_rowsPerMinute;
+  paternLength = local_rowsPerPattern;
   file.close();
   return 0;
-}
-
-void audioCallback(void *userdata, Uint8 *stream, int len) {
-  (void)userdata;
-  if (global_freezeAudio) {
-    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
-      stream[i] =
-          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
-    }
-    global_audioFrozen = true;
-    return;
-  }
-  global_audioFrozen = false;
-
-  if (global_state == main_menu) {
-    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
-      unsigned long t = audio_time + i;
-      stream[i] = (t * 3 / 2 & t >> 8) | (t * 5 / 4 & t >> 11);
-    }
-    audio_time += len;
-    return;
-  }
-
-  if (global_canPlay && global_playing && orders.tableCount() > 0) {
-    if (!timers.hasTimer("row"))
-      timers.addTimer("row", 48000 * 60 / rowsPerMinute);
-    if (!timers.hasTimer("effect"))
-      timers.addTimer("effect", 375 * 960 / rowsPerMinute);
-    if (!timers.hasTimer("arpeggio"))
-      timers.addTimer("arpeggio", 1500 * 960 / rowsPerMinute);
-    for (unsigned int audioIdx = 0; audioIdx < static_cast<unsigned int>(len);
-         audioIdx++) {
-      unsigned char sample = 0;
-      for (unsigned char instrumentIdx = 0;
-           instrumentIdx < instruments.inst_count(); instrumentIdx++) {
-        sample = static_cast<unsigned char>(
-            std::min(255, static_cast<unsigned short>(sample) +
-                              static_cast<unsigned short>(
-                                  instruments.at(instrumentIdx)->gen() / 4)));
-      }
-      stream[audioIdx] = sample;
-      timers.tick();
-      if (timers.isComplete("row")) {
-        audio_row++;
-        if (audio_row >= orders.at(0)->at(0)->rowCount()) {
-          audio_row = 0;
-          audio_pattern++;
-          if (audio_pattern >= indexes.rowCount()) {
-            audio_pattern = 0;
-          }
-        }
-        timers.resetTimer("row", 48000 * 60 / rowsPerMinute);
-        for (unsigned char i = 0; i < instruments.inst_count(); i++) {
-          unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
-          row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
-          instruments.at(i)->set_row(*currentRow);
-        }
-      }
-    }
-    if (timers.isComplete("effect")) {
-      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
-        instruments.at(i)->applyFx();
-      }
-      timers.resetTimer("effect", 375 * 960 / rowsPerMinute);
-    }
-    if (timers.isComplete("arpeggio")) {
-      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
-        instruments.at(i)->applyArpeggio();
-      }
-      timers.resetTimer("arpeggio", 1500 * 960 / rowsPerMinute);
-    }
-  } else {
-    if (global_canPlay) {
-      if (timers.hasTimer("row"))
-        timers.removeTimer("row");
-      if (timers.hasTimer("effect"))
-        timers.removeTimer("effect");
-      if (timers.hasTimer("arpeggio"))
-        timers.removeTimer("arpeggio");
-      audio_row = -1;
-      audio_pattern = patternMenu_orderIndex;
-      row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
-      for (char i = 0; i < 4; i++)
-        dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
-      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
-        instruments.at(i)->set_row(dummyRow);
-      }
-    }
-    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
-      stream[i] =
-          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
-    }
-  }
-  audio_time += len;
-}
-
-void write32LE(unsigned char *buffer, unsigned int a, size_t &bufferIdx) {
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a    &255));
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8 &255));
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>16&255));
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>24&255));
-}
-
-void write16LE(unsigned char *buffer, unsigned short a, size_t &bufferIdx) {
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a    &255));
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8 &255));
 }
 
 int renderTo(std::filesystem::path path) {
@@ -499,10 +514,10 @@ int renderTo(std::filesystem::path path) {
   if (!file || !file.is_open())
     return 1;
   // Estimate the song length
-  size_t songLength = 48000 * 60;
-  songLength *= rowCount;
+  size_t songLength = 48000 * 120;
+  songLength *= paternLength;
   songLength *= indexes.rowCount();
-  songLength /= rowsPerMinute;
+  songLength /= audio_tempo;
   // Make a buffer whose length is the file size
   unsigned char *buffer = new unsigned char[songLength + 44];
   size_t headerIdx = 0;
@@ -542,38 +557,38 @@ int renderTo(std::filesystem::path path) {
   }
   audio_pattern = 0;
   audio_row = 0;
-  global_playing = false;
-  global_canPlay = false;
-  global_freezeAudio = true;
-  while(!global_audioFrozen) {};
+  audio_isPlaying = false;
+  audio_canPlay = false;
+  audio_freeze = true;
+  while(!audio_isFrozen) {};
 
-  if(timers.hasTimer("row"     )) timers.removeTimer("row"     );
-  if(timers.hasTimer("effect"  )) timers.removeTimer("effect"  );
-  if(timers.hasTimer("arpeggio")) timers.removeTimer("arpeggio");
-  timers.addTimer("row", 48000 * 60 / rowsPerMinute);
-  timers.addTimer("effect", 375 * 960 / rowsPerMinute);
-  timers.addTimer("arpeggio", 1500 * 960 / rowsPerMinute);
+  if(timerSystem.hasTimer("row"     )) timerSystem.removeTimer("row"     );
+  if(timerSystem.hasTimer("effect"  )) timerSystem.removeTimer("effect"  );
+  if(timerSystem.hasTimer("arpeggio")) timerSystem.removeTimer("arpeggio");
+  timerSystem.addTimer("row", 48000 * 60 / audio_tempo);
+  timerSystem.addTimer("effect", 375 * 960 / audio_tempo);
+  timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tempo);
   row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
   for (char i = 0; i < 4; i++)
     dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
-  for (unsigned char i = 0; i < instruments.inst_count(); i++) {
+  for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
     unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
     row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
-    instruments.at(i)->set_row(dummyRow);
-    instruments.at(i)->set_row(*currentRow);
+    instrumentSystem.at(i)->set_row(dummyRow);
+    instrumentSystem.at(i)->set_row(*currentRow);
   }
   for (unsigned int audioIdx = 0; audioIdx < songLength; audioIdx++) {
     unsigned char sample = 0;
     for (unsigned char instrumentIdx = 0;
-         instrumentIdx < instruments.inst_count(); instrumentIdx++) {
+         instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
       sample = static_cast<unsigned char>(
           std::min(255, static_cast<unsigned short>(sample) +
                             static_cast<unsigned short>(
-                                instruments.at(instrumentIdx)->gen() / 4)));
+                                instrumentSystem.at(instrumentIdx)->gen() / 4)));
     }
     buffer[audioIdx + headerIdx] = sample;
-    timers.tick();
-    if (timers.isComplete("row")) {
+    timerSystem.tick();
+    if (timerSystem.isComplete("row")) {
       audio_row++;
       if (audio_row >= orders.at(0)->at(0)->rowCount()) {
         audio_row = 0;
@@ -582,39 +597,141 @@ int renderTo(std::filesystem::path path) {
           audio_pattern = 0;
         }
       }
-      timers.resetTimer("row", 0);
-      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
+      timerSystem.resetTimer("row", 0);
+      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
         unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
         row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
-        instruments.at(i)->set_row(*currentRow);
+        instrumentSystem.at(i)->set_row(*currentRow);
       }
     }
-    if (timers.isComplete("effect")) {
-      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
-        instruments.at(i)->applyFx();
+    if (timerSystem.isComplete("effect")) {
+      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+        instrumentSystem.at(i)->applyFx();
       }
-      timers.resetTimer("effect", 0);
+      timerSystem.resetTimer("effect", 0);
     }
-    if (timers.isComplete("arpeggio")) {
-      for (unsigned char i = 0; i < instruments.inst_count(); i++) {
-        instruments.at(i)->applyArpeggio();
+    if (timerSystem.isComplete("arpeggio")) {
+      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+        instrumentSystem.at(i)->applyArpeggio();
       }
-      timers.resetTimer("arpeggio", 0);
+      timerSystem.resetTimer("arpeggio", 0);
     }
   }
-  if (timers.hasTimer("row"))
-    timers.removeTimer("row");
-  if (timers.hasTimer("effect"))
-    timers.removeTimer("effect");
-  if (timers.hasTimer("arpeggio"))
-    timers.removeTimer("arpeggio");
-  global_canPlay = true;
-  global_freezeAudio = false;
+  if (timerSystem.hasTimer("row"))
+    timerSystem.removeTimer("row");
+  if (timerSystem.hasTimer("effect"))
+    timerSystem.removeTimer("effect");
+  if (timerSystem.hasTimer("arpeggio"))
+    timerSystem.removeTimer("arpeggio");
+  audio_canPlay = true;
+  audio_freeze = false;
   file.write(reinterpret_cast<char*>(buffer),songLength+44);
   file.close();
   delete[] buffer;
   return 0;
 }
+
+/******************
+ * Audio callback *
+ ******************/
+
+void audioCallback(void *userdata, Uint8 *stream, int len) {
+  (void)userdata;
+  if (audio_freeze) {
+    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
+      stream[i] =
+          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
+    }
+    audio_isFrozen = true;
+    return;
+  }
+  audio_isFrozen = false;
+
+  if (global_state == GlobalMenus::main_menu) {
+    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
+      unsigned long t = audio_time + i;
+      stream[i] = (t * 3 / 2 & t >> 8) | (t * 5 / 4 & t >> 11);
+    }
+    audio_time += len;
+    return;
+  }
+
+  if (audio_canPlay && audio_isPlaying && orders.tableCount() > 0) {
+    if (!timerSystem.hasTimer("row"))
+      timerSystem.addTimer("row", 48000 * 60 / audio_tempo);
+    if (!timerSystem.hasTimer("effect"))
+      timerSystem.addTimer("effect", 375 * 960 / audio_tempo);
+    if (!timerSystem.hasTimer("arpeggio"))
+      timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tempo);
+    for (unsigned int audioIdx = 0; audioIdx < static_cast<unsigned int>(len);
+         audioIdx++) {
+      unsigned char sample = 0;
+      for (unsigned char instrumentIdx = 0;
+           instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
+        sample = static_cast<unsigned char>(
+            std::min(255, static_cast<unsigned short>(sample) +
+                              static_cast<unsigned short>(
+                                  instrumentSystem.at(instrumentIdx)->gen() / 4)));
+      }
+      stream[audioIdx] = sample;
+      timerSystem.tick();
+      if (timerSystem.isComplete("row")) {
+        audio_row++;
+        if (audio_row >= orders.at(0)->at(0)->rowCount()) {
+          audio_row = 0;
+          audio_pattern++;
+          if (audio_pattern >= indexes.rowCount()) {
+            audio_pattern = 0;
+          }
+        }
+        timerSystem.resetTimer("row", 48000 * 60 / audio_tempo);
+        for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+          unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
+          row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
+          instrumentSystem.at(i)->set_row(*currentRow);
+        }
+      }
+    }
+    if (timerSystem.isComplete("effect")) {
+      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+        instrumentSystem.at(i)->applyFx();
+      }
+      timerSystem.resetTimer("effect", 375 * 960 / audio_tempo);
+    }
+    if (timerSystem.isComplete("arpeggio")) {
+      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+        instrumentSystem.at(i)->applyArpeggio();
+      }
+      timerSystem.resetTimer("arpeggio", 1500 * 960 / audio_tempo);
+    }
+  } else {
+    if (audio_canPlay) {
+      if (timerSystem.hasTimer("row"))
+        timerSystem.removeTimer("row");
+      if (timerSystem.hasTimer("effect"))
+        timerSystem.removeTimer("effect");
+      if (timerSystem.hasTimer("arpeggio"))
+        timerSystem.removeTimer("arpeggio");
+      audio_row = -1;
+      audio_pattern = patternMenu_orderIndex;
+      row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
+      for (char i = 0; i < 4; i++)
+        dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
+      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+        instrumentSystem.at(i)->set_row(dummyRow);
+      }
+    }
+    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
+      stream[i] =
+          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
+    }
+  }
+  audio_time += len;
+}
+
+/******************
+ * Initialization *
+ ******************/
 
 void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
   int windowWidth, windowHeight;
@@ -652,19 +769,23 @@ void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
   SDL_PauseAudio(0);
 }
 
+/*********************************
+ * Cursor and keyboard functions *
+ *********************************/
+
 void setLimits(unsigned int &limitX, unsigned int &limitY) {
   switch (global_state) {
-  case instrument_menu: {
+  case GlobalMenus::instrument_menu: {
     limitX = 0;
-    limitY = instruments.inst_count() - 1;
+    limitY = instrumentSystem.inst_count() - 1;
     break;
   }
-  case order_menu: {
+  case GlobalMenus::order_menu: {
     limitX = indexes.instCount(0) - 1;
     limitY = indexes.rowCount() - 1;
     break;
   }
-  case order_management_menu: {
+  case GlobalMenus::order_management_menu: {
     if (cursorPosition.subMenu == 1 && orders.tableCount() > 0) {
       limitX = orders.tableCount() - 1;
       limitY = 0;
@@ -677,7 +798,7 @@ void setLimits(unsigned int &limitX, unsigned int &limitY) {
       limitX = 0;
     break;
   }
-  case pattern_menu: {
+  case GlobalMenus::pattern_menu: {
     if (orders.tableCount() < 1) {
       limitX = limitY = 0;
       break;
@@ -689,7 +810,7 @@ void setLimits(unsigned int &limitX, unsigned int &limitY) {
     limitY = orders.at(0)->at(0)->rowCount() - 1;
     break;
   }
-  case options_menu: {
+  case GlobalMenus::options_menu: {
     limitX = 0;
     limitY = 1;
     break;
@@ -713,27 +834,27 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
     quit = 1;
     break;
   case SDL_TEXTINPUT: {
-    if (global_state == save_file_menu)
+    if (global_state == GlobalMenus::save_file_menu)
       saveFileMenu_fileName += event->text.text;
-    if (global_state == render_menu)
+    if (global_state == GlobalMenus::render_menu)
       renderMenu_fileName += event->text.text;
     break;
   }
   case SDL_KEYDOWN: {
     SDL_Keysym ks = event->key.keysym;
     SDL_Keycode code = ks.sym;
-    if (global_state == save_file_menu || global_state == render_menu) {
+    if (global_state == GlobalMenus::save_file_menu || global_state == GlobalMenus::render_menu) {
       if (code == SDLK_ESCAPE) {
-        global_state = file_menu;
+        global_state = GlobalMenus::file_menu;
         onOpenMenu();
       }
       if (code == SDLK_BACKSPACE && !saveFileMenu_fileName.empty()) {
-        if(global_state==save_file_menu) saveFileMenu_fileName.pop_back();
-        else renderMenu_fileName.pop_back();
+        if(global_state==GlobalMenus::save_file_menu && !saveFileMenu_fileName.empty()) saveFileMenu_fileName.pop_back();
+        else if(!renderMenu_fileName.empty()) renderMenu_fileName.pop_back();
       }
       if (code == SDLK_RETURN || code == SDLK_RETURN2) {
         std::filesystem::path path(fileMenu_directoryPath + PATH_SEPERATOR_S +
-                                   (global_state == render_menu
+                                   (global_state == GlobalMenus::render_menu
                                         ? renderMenu_fileName
                                         : saveFileMenu_fileName));
         try {
@@ -741,15 +862,15 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             cursorPosition.subMenu = 1;
             break;
           }
-          if (global_state == save_file_menu) {
+          if (global_state == GlobalMenus::save_file_menu) {
             int exit_code = saveFile(path);
             if (exit_code) {
               fileMenu_errorText =
                   const_cast<char *>("Refused to save the file");
-              global_state = file_menu;
+              global_state = GlobalMenus::file_menu;
               onOpenMenu();
             } else {
-              global_state = pattern_menu;
+              global_state = GlobalMenus::pattern_menu;
               onOpenMenu();
             };
           } else {
@@ -757,37 +878,37 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             if (exit_code) {
               fileMenu_errorText =
                   const_cast<char *>("Refused to render to the file");
-              global_state = file_menu;
+              global_state = GlobalMenus::file_menu;
               onOpenMenu();
             } else {
-              global_state = pattern_menu;
+              global_state = GlobalMenus::pattern_menu;
               onOpenMenu();
             };
           }
         } catch (std::filesystem::filesystem_error &) {
           fileMenu_errorText = const_cast<char *>(
               "Filesystem error trying to save/render to the file");
-          global_state = file_menu;
+          global_state = GlobalMenus::file_menu;
           onOpenMenu();
         }
       }
       break;
     }
-    if (global_state == main_menu) {
+    if (global_state == GlobalMenus::main_menu) {
       switch (code) {
       case SDLK_ESCAPE: {
         quit = 1;
         break;
       }
       case 'z': {
-        global_state = help_menu;
+        global_state = GlobalMenus::help_menu;
         break;
       }
       }
     } else {
       switch (code) {
       case SDLK_ESCAPE: {
-        if (global_state == file_menu) {
+        if (global_state == GlobalMenus::file_menu) {
           if (std::filesystem::path(fileMenu_directoryPath).has_parent_path()) {
             fileMenu_directoryPath =
                 std::filesystem::path(fileMenu_directoryPath)
@@ -801,37 +922,37 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
         break;
       }
       case SDLK_F1: {
-        global_state = help_menu;
+        global_state = GlobalMenus::help_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F2: {
-        global_state = order_menu;
+        global_state = GlobalMenus::order_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F3: {
-        global_state = pattern_menu;
+        global_state = GlobalMenus::pattern_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F4: {
-        global_state = instrument_menu;
+        global_state = GlobalMenus::instrument_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F5: {
-        global_state = order_management_menu;
+        global_state = GlobalMenus::order_management_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F6: {
-        global_state = options_menu;
+        global_state = GlobalMenus::options_menu;
         onOpenMenu();
         break;
       }
       case SDLK_F7: {
-        global_state = file_menu;
+        global_state = GlobalMenus::file_menu;
         onOpenMenu();
         break;
       }
@@ -857,7 +978,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
       }
       case SDLK_RETURN:
       case SDLK_RETURN2: {
-        if (global_state == file_menu) {
+        if (global_state == GlobalMenus::file_menu) {
           int i = 0;
           bool found = false;
           fileMenu_errorText = const_cast<char *>("");
@@ -892,7 +1013,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                     } else {
                       patternMenu_orderIndex = 0;
                       patternMenu_viewMode = 3;
-                      global_state = pattern_menu;
+                      global_state = GlobalMenus::pattern_menu;
                       onOpenMenu();
                     };
                   }
@@ -915,12 +1036,12 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           }
           break;
         }
-        if (global_canPlay)
-          global_playing = !global_playing;
+        if (audio_canPlay)
+          audio_isPlaying = !audio_isPlaying;
         break;
       }
       }
-      if (global_state == pattern_menu) {
+      if (global_state == GlobalMenus::pattern_menu) {
         switch (code) {
         case 'p': {
           if (orders.tableCount() == 0)
@@ -1149,26 +1270,26 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
       } else {
         switch (code) {
         case 'z': {
-          if (global_state == instrument_menu &&
-              instruments.inst_count() < 254) {
-            instruments.add_inst(audioChannelType::null);
+          if (global_state == GlobalMenus::instrument_menu &&
+              instrumentSystem.inst_count() < 254) {
+            instrumentSystem.add_inst(audioChannelType::null);
             orders.at(orders.addTable())->add_order();
             indexes.addInst();
-          } else if (global_state == order_menu) {
+          } else if (global_state == GlobalMenus::order_menu) {
             indexes.addRow();
           }
           break;
         }
         case 'x': {
-          if (global_state == instrument_menu && instruments.inst_count() > 0) {
-            instruments.remove_inst(cursorPosition.y);
+          if (global_state == GlobalMenus::instrument_menu && instrumentSystem.inst_count() > 0) {
+            instrumentSystem.remove_inst(cursorPosition.y);
             orders.removeTable(cursorPosition.y);
             indexes.removeInst(cursorPosition.y);
             if (orders.tableCount() == 0)
               patternMenu_orderIndex = 0;
-          } else if (global_state == order_menu && indexes.rowCount() > 1) {
+          } else if (global_state == GlobalMenus::order_menu && indexes.rowCount() > 1) {
             indexes.removeRow(cursorPosition.y);
-          } else if (global_state == order_management_menu &&
+          } else if (global_state == GlobalMenus::order_management_menu &&
                      cursorPosition.subMenu == 0 && orders.tableCount() > 0) {
             if (cursorPosition.x == 0)
               break;
@@ -1188,9 +1309,9 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           break;
         }
         case 'c': {
-          if (global_state == instrument_menu && instruments.inst_count() > 0) {
-            instruments.at(cursorPosition.y)->cycle_type();
-          } else if (global_state == order_management_menu &&
+          if (global_state == GlobalMenus::instrument_menu && instrumentSystem.inst_count() > 0) {
+            instrumentSystem.at(cursorPosition.y)->cycle_type();
+          } else if (global_state == GlobalMenus::order_management_menu &&
                      orders.tableCount() > 0) {
             if (cursorPosition.subMenu == 0) {
               cursorPosition.selection.x = cursorPosition.x;
@@ -1204,7 +1325,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                                 ->at(orders.at(cursorPosition.x)->add_order());
             order *input = orders.at(cursorPosition.selection.y)
                                ->at(cursorPosition.selection.x);
-            for (int i = 0; i < rowCount; i++) {
+            for (int i = 0; i < paternLength; i++) {
               row *inputRow = input->at(i);
               row *outputRow = output->at(i);
               outputRow->feature = inputRow->feature;
@@ -1229,60 +1350,60 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           break;
         }
         case 'w': {
-          if (global_state == order_menu && instruments.inst_count() > 0) {
+          if (global_state == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
             if (indexes.at(cursorPosition.y)->at(cursorPosition.x) < 254)
               indexes.at(cursorPosition.y)->increment(cursorPosition.x);
 
             while (indexes.at(cursorPosition.y)->at(cursorPosition.x) >=
                    orders.at(cursorPosition.x)->order_count())
               orders.at(cursorPosition.x)->add_order();
-          } else if (global_state == options_menu) {
+          } else if (global_state == GlobalMenus::options_menu) {
             if (cursorPosition.y == 0) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
-                  rowsPerMinute < 65525) {
-                rowsPerMinute += 10;
-              } else if (rowsPerMinute < 65534) {
-                rowsPerMinute++;
+                  audio_tempo < 65525) {
+                audio_tempo += 10;
+              } else if (audio_tempo < 65534) {
+                audio_tempo++;
               }
             } else {
-              if (rowCount < 256) {
-                rowCount++;
-                orders.setRowCount(rowCount);
+              if (paternLength < 256) {
+                paternLength++;
+                orders.setRowCount(paternLength);
               }
             }
           }
           break;
         }
         case 's': {
-          if (global_state == order_menu && instruments.inst_count() > 0) {
+          if (global_state == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
             if (indexes.at(cursorPosition.y)->at(cursorPosition.x) > 0)
               indexes.at(cursorPosition.y)->decrement(cursorPosition.x);
-          } else if (global_state == options_menu) {
+          } else if (global_state == GlobalMenus::options_menu) {
             if (cursorPosition.y == 0) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
-                  rowsPerMinute > 40) {
-                rowsPerMinute -= 10;
-              } else if (rowsPerMinute > 30) {
-                rowsPerMinute--;
+                  audio_tempo > 40) {
+                audio_tempo -= 10;
+              } else if (audio_tempo > 30) {
+                audio_tempo--;
               }
             } else {
-              if (rowCount > 16) {
-                rowCount--;
-                orders.setRowCount(rowCount);
+              if (paternLength > 16) {
+                paternLength--;
+                orders.setRowCount(paternLength);
               }
             }
-          } else if (global_state == file_menu) {
-            global_state = save_file_menu;
+          } else if (global_state == GlobalMenus::file_menu) {
+            global_state = GlobalMenus::save_file_menu;
           }
           break;
         }
         case 'r': {
-          if (global_state == file_menu) {
-            global_state = render_menu;
+          if (global_state == GlobalMenus::file_menu) {
+            global_state = GlobalMenus::render_menu;
           }
           break;
         }
@@ -1298,6 +1419,10 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
   if (cursorPosition.y > limitY)
     cursorPosition.y = limitY;
 }
+
+/*******************
+ * (G)UI functions *
+ *******************/
 
 char *getTypeName(audioChannelType type, bool short_name) {
   char *str = const_cast<char *>("Error");
@@ -1344,6 +1469,13 @@ char *getTypeName(audioChannelType type, bool short_name) {
     };
     str = const_cast<char *>("Sawtooth");
     break;
+  default:
+  if (short_name) {
+      str = const_cast<char *>("??");
+      break;
+    };
+    str = const_cast<char *>("Unknown");
+    break;
   }
   return str;
 }
@@ -1360,47 +1492,9 @@ void barrierVertical(SDL_Renderer *r, unsigned int x, int windowHeight) {
   SDL_RenderFillRect(r, &borderRectangle);
 }
 
-char hex(char a) {
-  a &= 15;
-  if (a > 9)
-    return 'A' + a - 10;
-  else
-    return '0' + a;
-}
-
-void hex2(unsigned char a, char &c1, char &c2) {
-  if (a >> 4 > 9)
-    c1 = 'A' + (a >> 4) - 10;
-  else
-    c1 = '0' + (a >> 4);
-
-  if ((a & 15) > 9)
-    c2 = 'A' + (a & 15) - 10;
-  else
-    c2 = '0' + (a & 15);
-}
-
-void hex4(unsigned short a, char *s) {
-  if ((a >> 12 & 15) > 9)
-    s[0] = 'A' + (a >> 12 & 15) - 10;
-  else
-    s[0] = '0' + (a >> 12 & 15);
-
-  if ((a >> 8 & 15) > 9)
-    s[1] = 'A' + (a >> 8 & 15) - 10;
-  else
-    s[1] = '0' + (a >> 8 & 15);
-
-  if ((a >> 4 & 15) > 9)
-    s[2] = 'A' + (a >> 4 & 15) - 10;
-  else
-    s[2] = '0' + (a >> 4 & 15);
-
-  if ((a & 15) > 9)
-    s[3] = 'A' + (a & 15) - 10;
-  else
-    s[3] = '0' + (a & 15);
-}
+/*************************************************************
+ * The giant function that does all of the heavy GUI lifting *
+ *************************************************************/
 
 void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
   long millis = SDL_GetTicks64();
@@ -1445,7 +1539,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
   // *not* background
   int i = 0;
   const char *str = "chTRACKER";
-  if (global_state == main_menu) {
+  if (global_state == GlobalMenus::main_menu) {
     while (str[i] != 0) {
       text_drawBigChar(
           renderer, indexes_charToIdx(str[i]), 4,
@@ -1470,9 +1564,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       visual_numberToString(str, global_patchVersion);
       versionString += str;
       if (global_prereleaseVersion > 0) {
-        visual_numberToString(str, global_prereleaseVersion);
-        versionString += "-";
-        versionString += str;
+        char c[2];
+        c[1] = 0;
+        c[0] = 'A' + global_prereleaseVersion - 1;
+        versionString += '.';
+        versionString += c;
       }
       text_drawText(renderer, const_cast<char *>(versionString.c_str()), 2, 0,
                     windowHeight - 16, visual_whiteText, 0, fontTileCountW);
@@ -1487,30 +1583,30 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
   } else {
     short xOffset = 0;
     text_drawText(renderer, const_cast<char *>("Help!"), 1, xOffset, 0,
-                  visual_whiteText, global_state == help_menu, windowWidth / 8);
+                  visual_whiteText, global_state == GlobalMenus::help_menu, windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("Order"), 1, xOffset, 0,
-                  visual_whiteText, global_state == order_menu,
+                  visual_whiteText, global_state == GlobalMenus::order_menu,
                   windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("Pat."), 1, xOffset, 0,
-                  visual_whiteText, global_state == pattern_menu,
+                  visual_whiteText, global_state == GlobalMenus::pattern_menu,
                   windowWidth / 8);
     xOffset += 5 * 8;
     text_drawText(renderer, const_cast<char *>("Inst."), 1, xOffset, 0,
-                  visual_whiteText, global_state == instrument_menu,
+                  visual_whiteText, global_state == GlobalMenus::instrument_menu,
                   windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("OrdMan."), 1, xOffset, 0,
-                  visual_whiteText, global_state == order_management_menu,
+                  visual_whiteText, global_state == GlobalMenus::order_management_menu,
                   windowWidth / 8);
     xOffset += 8 * 8;
     text_drawText(renderer, const_cast<char *>("Options"), 1, xOffset, 0,
-                  visual_whiteText, global_state == options_menu,
+                  visual_whiteText, global_state == GlobalMenus::options_menu,
                   windowWidth / 8);
     xOffset += 8 * 8;
     text_drawText(renderer, const_cast<char *>("File"), 1, xOffset, 0,
-                  visual_whiteText, global_state == file_menu, windowWidth / 8);
+                  visual_whiteText, global_state == GlobalMenus::file_menu, windowWidth / 8);
     // l+=6;
     // text_drawText(renderer, const_cast<char *>("Order"), 1, l*8, 0,
     // visual_whiteText, global_state==preset_menu, windowWidth/8);
@@ -1518,12 +1614,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
     SDL_Rect borderRectangle = {0, 8, windowWidth, 8};
     SDL_RenderFillRect(renderer, &borderRectangle);
     switch (global_state) {
-    case main_menu: {
+    case GlobalMenus::main_menu: {
       text_drawText(renderer, const_cast<char *>("Error"), 3, 18, 18,
                     visual_redText, 1, 10);
       break;
     }
-    case help_menu: {
+    case GlobalMenus::help_menu: {
       // text_drawText(renderer, const_cast<char *>("Insert help here"), 2, 0,
       // 16, visual_whiteText, 1, fontTileCountW);
       std::ifstream helpFile("./doc/help.txt", std::ios::in);
@@ -1568,7 +1664,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       }
       break;
     }
-    case order_menu: {
+    case GlobalMenus::order_menu: {
       text_drawText(renderer, const_cast<char *>("Order rows: "), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       char *numberStr = new char[4];
@@ -1643,7 +1739,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       }
       break;
     }
-    case pattern_menu: {
+    case GlobalMenus::pattern_menu: {
       barrier(renderer, 48, windowWidth);
       if (orders.tableCount() == 0) {
         text_drawText(
@@ -1655,10 +1751,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       text_drawText(renderer, const_cast<char *>("Order"), 2, 0, 16,
                     visual_whiteText, 0, 5);
       orderIndexRow *orderRow =
-          indexes.at(global_playing ? audio_pattern : patternMenu_orderIndex);
+          indexes.at(audio_isPlaying ? audio_pattern : patternMenu_orderIndex);
       char letters[4];
-      int cursorY = global_playing ? audio_row : cursorPosition.y;
-      hex4(global_playing ? audio_pattern : patternMenu_orderIndex, letters);
+      int cursorY = audio_isPlaying ? audio_row : cursorPosition.y;
+      hex4(audio_isPlaying ? audio_pattern : patternMenu_orderIndex, letters);
       for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
            hexNumberIndex++)
         text_drawBigChar(renderer, indexes_charToIdx(letters[hexNumberIndex]),
@@ -1730,28 +1826,28 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
               text_drawBigChar(renderer,
                                indexes_charToIdx(letters[hexNumberIndex]), 2,
                                hexNumberIndex * 16, y, visual_greyText,
-                               global_playing && cursorY == rowIndex);
+                               audio_isPlaying && cursorY == rowIndex);
           }
           if (currentRow == 0) {
             if (patternMenu_instrumentCollumnWidth[static_cast<size_t>(
                     patternMenu_viewMode)] >= 13) {
               text_drawText(
                   renderer,
-                  getTypeName(instruments.at(instrumentIndex)->get_type(),
+                  getTypeName(instrumentSystem.at(instrumentIndex)->get_type(),
                               false),
                   2, 16 * (7 + localCurrentCollumn), 64, visual_whiteText,
                   instrumentIndex == selectedInstrument ||
-                      (global_playing && cursorY == rowIndex),
+                      (audio_isPlaying && cursorY == rowIndex),
                   10);
             } else if (patternMenu_instrumentCollumnWidth[static_cast<size_t>(
                            patternMenu_viewMode)] >= 5) {
               text_drawText(
                   renderer,
-                  getTypeName(instruments.at(instrumentIndex)->get_type(),
+                  getTypeName(instrumentSystem.at(instrumentIndex)->get_type(),
                               true),
                   2, 16 * (7 + localCurrentCollumn), 64, visual_whiteText,
                   instrumentIndex == selectedInstrument ||
-                      (global_playing && cursorY == rowIndex),
+                      (audio_isPlaying && cursorY == rowIndex),
                   2);
             }
             hex2(instrumentIndex, letters[0], letters[1]);
@@ -1759,12 +1855,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                              16 * (4 + localCurrentCollumn), 64,
                              visual_greenText,
                              instrumentIndex == selectedInstrument ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx(letters[1]), 2,
                              16 * (5 + localCurrentCollumn), 64,
                              visual_greenText,
                              instrumentIndex == selectedInstrument ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
           }
 
           row *r = currentOrder->at(rowIndex);
@@ -1774,12 +1870,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                              16 * (4 + localCurrentCollumn), y,
                              visual_whiteText,
                              (rowSeleted && selectedVariable == 0) ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx(hex(r->octave)), 2,
                              16 * (5 + localCurrentCollumn), y,
                              visual_whiteText,
                              (rowSeleted && selectedVariable == 1) ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
             if (patternMenu_viewMode >= 1) {
               hex2(r->volume, letters[0], letters[1]);
@@ -1787,12 +1883,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                                16 * (4 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 2) ||
-                                   (global_playing && cursorY == rowIndex));
+                                   (audio_isPlaying && cursorY == rowIndex));
               text_drawBigChar(renderer, indexes_charToIdx(letters[1]), 2,
                                16 * (5 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 3) ||
-                                   (global_playing && cursorY == rowIndex));
+                                   (audio_isPlaying && cursorY == rowIndex));
               localCurrentCollumn += 3;
             }
             break;
@@ -1802,24 +1898,24 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                              16 * (4 + localCurrentCollumn), y,
                              visual_whiteText,
                              (rowSeleted && selectedVariable == 0) ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                              16 * (5 + localCurrentCollumn), y,
                              visual_whiteText,
                              (rowSeleted && selectedVariable == 1) ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
             if (patternMenu_viewMode >= 1) {
               text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                                16 * (4 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 2) ||
-                                   (global_playing && cursorY == rowIndex));
+                                   (audio_isPlaying && cursorY == rowIndex));
               text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                                16 * (5 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 3) ||
-                                   (global_playing && cursorY == rowIndex));
+                                   (audio_isPlaying && cursorY == rowIndex));
               localCurrentCollumn += 3;
             }
             break;
@@ -1829,24 +1925,24 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                              16 * (4 + localCurrentCollumn), y,
                              visual_whiteText,
                              (rowSeleted && selectedVariable == 0) ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx('='), 2,
                              16 * (5 + localCurrentCollumn), y,
                              visual_whiteText,
                              (rowSeleted && selectedVariable == 1) ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
             if (patternMenu_viewMode >= 1) {
               text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                                16 * (4 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 2) ||
-                                   (global_playing && cursorY == rowIndex));
+                                   (audio_isPlaying && cursorY == rowIndex));
               text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                                16 * (5 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 3) ||
-                                   (global_playing && cursorY == rowIndex));
+                                   (audio_isPlaying && cursorY == rowIndex));
               localCurrentCollumn += 3;
             }
             break;
@@ -1900,7 +1996,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                              effect_autoreset ? visual_greenText
                                               : visual_yellowText,
                              (rowSeleted && selectedVariable == 4 + (i * 5)) ||
-                                 (global_playing && cursorY == rowIndex));
+                                 (audio_isPlaying && cursorY == rowIndex));
             hex4(e.effect, letters);
             for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
                  hexNumberIndex++)
@@ -1910,7 +2006,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                   effect_autoreset ? visual_greenText : visual_yellowText,
                   (rowSeleted &&
                    selectedVariable == 5 + hexNumberIndex + (i * 5)) ||
-                      (global_playing && cursorY == rowIndex));
+                      (audio_isPlaying && cursorY == rowIndex));
             localCurrentCollumn += 6;
           }
           if (patternMenu_viewMode >= 1)
@@ -1925,11 +2021,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       }
       break;
     }
-    case instrument_menu: {
+    case GlobalMenus::instrument_menu: {
       text_drawText(renderer, const_cast<char *>("Instruments: "), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       unsigned char orderTableCount = orders.tableCount();
-      unsigned char instrumentCount = instruments.inst_count();
+      unsigned char instrumentCount = instrumentSystem.inst_count();
       unsigned char orderIndexCount =
           indexes.instCount(SDL_max(orderTableCount, instrumentCount));
       unsigned char instCount =
@@ -1940,8 +2036,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
           std::cerr << "Corrected an instrument length issue!" << std::endl;
           while (orders.tableCount() < instCount)
             orders.at(orders.addTable())->add_order();
-          while (instruments.inst_count() < instCount)
-            instruments.add_inst(audioChannelType::null);
+          while (instrumentSystem.inst_count() < instCount)
+            instrumentSystem.add_inst(audioChannelType::null);
           while (indexes.instCount(instCount) < instCount)
             indexes.addInst();
         }
@@ -1972,14 +2068,14 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
         text_drawBigChar(renderer, indexes_charToIdx(letter2), 2, 16, y,
                          visual_whiteText, i == cursorPosition.y);
         text_drawText(
-            renderer, getTypeName(instruments.at(i)->get_type(), false), 2, 48,
+            renderer, getTypeName(instrumentSystem.at(i)->get_type(), false), 2, 48,
             y, visual_whiteText, i == cursorPosition.y, fontTileCountW);
         currentRow++;
       }
       delete[] numberStr;
       break;
     }
-    case order_management_menu: {
+    case GlobalMenus::order_management_menu: {
       unsigned char startingRow = static_cast<unsigned char>(
           std::max(0, static_cast<short>(cursorPosition.y) -
                           static_cast<short>(fontTileCountH / 4)));
@@ -2045,12 +2141,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                       fontTileCountW);
         text_drawText(
             renderer,
-            getTypeName(instruments.at(cursorPosition.x)->get_type(), false), 2,
+            getTypeName(instrumentSystem.at(cursorPosition.x)->get_type(), false), 2,
             48, ceiling + 48, visual_whiteText, 0, fontTileCountW);
       }
       break;
     }
-    case options_menu: {
+    case GlobalMenus::options_menu: {
       text_drawText(renderer, const_cast<char *>("W to increase"), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("S to decrease"), 2, 0, 32,
@@ -2060,15 +2156,15 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
       text_drawText(renderer, const_cast<char *>("Rows per order"), 2, 0, 80,
                     visual_whiteText, cursorPosition.y == 1, fontTileCountW);
       char numbers[6];
-      visual_numberToString(numbers, rowsPerMinute);
+      visual_numberToString(numbers, audio_tempo);
       text_drawText(renderer, numbers, 2, 256, 64, visual_whiteText,
                     cursorPosition.y == 0, fontTileCountW);
-      visual_numberToString(numbers, rowCount);
+      visual_numberToString(numbers, paternLength);
       text_drawText(renderer, numbers, 2, 256, 80, visual_whiteText,
                     cursorPosition.y == 1, fontTileCountW);
       break;
     }
-    case file_menu: {
+    case GlobalMenus::file_menu: {
       if (fileMenu_errorText[0] == 0) {
         text_drawText(renderer,
                       const_cast<char *>("Welcome to the FILE PICKER"), 2, 0,
@@ -2130,7 +2226,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                       i == static_cast<int>(cursorPosition.y), fontTileCountW);
       break;
     }
-    case save_file_menu: {
+    case GlobalMenus::save_file_menu: {
       text_drawText(renderer, const_cast<char *>("Saving to"), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer,
@@ -2147,7 +2243,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                     2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }
-    case render_menu: {
+    case GlobalMenus::render_menu: {
       text_drawText(renderer, const_cast<char *>("Rendering to"), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer,
@@ -2171,6 +2267,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
   }
 }
 
+/**************************
+ * Main wrapper functions *
+ **************************/
+
 void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
   SDL_Event event;
   int quit = 0;
@@ -2180,7 +2280,6 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
     }
     screenUpdate(renderer, window);
     SDL_RenderPresent(renderer);
-    video_frame++;
   }
 }
 
