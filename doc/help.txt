@@ -58,10 +58,10 @@ has a lot of hexadecimal.
 
 Most of the menus have information on
 what key to press. Press ESC outside of
-the file menu to quit the program. This
-currently doesn't check for unsaved
-changes (however that is coming very
-soon), so watch out and save often!
+the file menu to quit the program.
+
+There isn't undo, so you might want to
+save often!
 
 In any menu (Except this one!), there
 can be a cursor (represented by the
@@ -112,35 +112,26 @@ F7 - File menu:
     If you want to continue work from
     another time, or save work for
     another time, you go here. It
-    starts in your home directory or
-    folder and it's the only menu where
-    the [ESC] key won't quit the
-    program. Press [Return] on blue
-    text (which are folders or
-    directories) to view the files in
-    there. Press [Return] on green text
-    (files) to load the file. You will
-    get the "Refused to open the file"
-    error if:
-     - The file is not a chTRACKER file
-     - The file was saved with a
-       different version
-     - The file couldn't be opened at
-       all (this might actually cause
-       a more confusing error where
-       nothing seems to happen)
+    starts in your home directory on
+    Linux and C:\ on Windows and it's
+    the only menu where the [ESC] key
+    won't quit the program. Press
+    [Return] on blue text (which are
+    folders or directories) to view the
+    files in there. Press [Return] on
+    green text (files) to load the
+    file. If the file can't open
+    nothing might happen, or an error
+    will appear at the top of your screen.
 
     Press [S] in this menu to save a
     file. The program will ask for a
-    filename. The filename extension
-    is .cht (Though a bug makes it so
-    it looks like .chts or similar).
-    Simply type your filename in ([ESC]
-    here will put you back in the file
-    open menu instead of closing) and
-    press enter to save the file. You
-    might get "Refused to save the
-    file"; This indicates a
+    filename. Simply type your filename
+    in ([ESC] here will put you back in
+    the file open menu instead of
+    closing) and press enter to save
+    the file. You might get "Refused
+    to save the file"; This indicates a
     permissions issue or some other
     issue where your OS won't let the
     program save.

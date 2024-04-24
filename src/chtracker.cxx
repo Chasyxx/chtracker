@@ -101,7 +101,8 @@ enum class GlobalMenus {
   options_menu,
   file_menu,
   save_file_menu,
-  render_menu
+  render_menu,
+  quit_connfirmation_menu
 };
 
 struct Selection {
@@ -148,7 +149,6 @@ unsigned long  audio_time = 0;
 unsigned char  audio_row = -1;
 unsigned short audio_pattern = 0;
 bool /*******/ audio_isPlaying = false;
-bool /*******/ audio_canPlay = true;
 bool /*******/ audio_freeze = false;
 bool /*******/ audio_isFrozen = true;
 unsigned short audio_tempo = 960;
@@ -176,6 +176,11 @@ CursorPos /**/ cursorPosition;
 GlobalMenus    global_currentMenu /*******/ = GlobalMenus::main_menu;
 unsigned short patternMenu_orderIndex = 0;
 char /*******/ patternMenu_viewMode   = 3;
+
+/****************
+ * File-related *
+ ****************/
+
 #if defined(_WIN32)
 std::string    fileMenu_directoryPath = "C:\\";
 #else
@@ -184,6 +189,7 @@ std::string    fileMenu_directoryPath = "/";
 char* /******/ fileMenu_errorText     = const_cast<char *>("");
 std::string    saveFileMenu_fileName  = "file.cht";
 std::string    renderMenu_fileName    = "render.wav";
+bool /*******/ global_unsavedChanges  = false;
 
 /*****************************
  *                           *
@@ -192,7 +198,7 @@ std::string    renderMenu_fileName    = "render.wav";
  *                           *
  *****************************/
 
-void onOpenMenu() { cursorPosition = {0, 0, 0, {0, 0}}; }
+void onOpenMenu() { cursorPosition = {.x=0, .y=0, .subMenu=0, .selection={.x=0, .y=0}}; }
 // Quit SDL and terminate with code.
 void quit(int code = 0) {
   SDL_Quit();
@@ -379,9 +385,13 @@ int saveFile(std::filesystem::path path) {
 }
 
 int loadFile(std::filesystem::path filePath) {
+  if(timerSystem.hasTimer("row")) timerSystem.removeTimer("row");
+  if(timerSystem.hasTimer("effect")) timerSystem.removeTimer("effect");
+  if(timerSystem.hasTimer("arpeggio")) timerSystem.removeTimer("arpeggio");
+  audio_row = 0;
+  audio_pattern = 0;
+  audio_time = 0;
   audio_isPlaying = false;
-  while (timerSystem.hasTimer("row"))
-    ;
   std::ifstream file(filePath, std::ios::in | std::ios::binary);
   if (!file || !file.is_open())
     return 1;
@@ -558,8 +568,6 @@ int renderTo(std::filesystem::path path) {
   }
   audio_pattern = 0;
   audio_row = 0;
-  audio_isPlaying = false;
-  audio_canPlay = false;
   audio_freeze = true;
   while(!audio_isFrozen) {};
 
@@ -624,7 +632,6 @@ int renderTo(std::filesystem::path path) {
     timerSystem.removeTimer("effect");
   if (timerSystem.hasTimer("arpeggio"))
     timerSystem.removeTimer("arpeggio");
-  audio_canPlay = true;
   audio_freeze = false;
   file.write(reinterpret_cast<char*>(buffer),songLength+44);
   file.close();
@@ -657,7 +664,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
     return;
   }
 
-  if (audio_canPlay && audio_isPlaying && orders.tableCount() > 0) {
+  if (!audio_freeze && audio_isPlaying && orders.tableCount() > 0) {
     if (!timerSystem.hasTimer("row"))
       timerSystem.addTimer("row", 48000 * 60 / audio_tempo);
     if (!timerSystem.hasTimer("effect"))
@@ -706,14 +713,14 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
       timerSystem.resetTimer("arpeggio", 1500 * 960 / audio_tempo);
     }
   } else {
-    if (audio_canPlay) {
+    if (!audio_freeze) {
       if (timerSystem.hasTimer("row"))
         timerSystem.removeTimer("row");
       if (timerSystem.hasTimer("effect"))
         timerSystem.removeTimer("effect");
       if (timerSystem.hasTimer("arpeggio"))
         timerSystem.removeTimer("arpeggio");
-      audio_row = -1;
+      audio_row = 0;
       audio_pattern = patternMenu_orderIndex;
       row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
       for (char i = 0; i < 4; i++)
@@ -873,6 +880,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             } else {
               global_currentMenu = GlobalMenus::pattern_menu;
               onOpenMenu();
+              global_unsavedChanges = false;
             };
           } else {
             int exit_code = renderTo(path);
@@ -1007,6 +1015,8 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                     }
                     cursorPosition.y = 0;
                   } else {
+                    audio_freeze = true;
+                    while(!audio_isFrozen) {};
                     if (loadFile(entry.path())) {
                       if (SDL_strlen(fileMenu_errorText) == 0)
                         fileMenu_errorText =
@@ -1016,7 +1026,9 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                       patternMenu_viewMode = 3;
                       global_currentMenu = GlobalMenus::pattern_menu;
                       onOpenMenu();
+                      global_unsavedChanges = false;
                     };
+                    audio_freeze = false;
                   }
                   break;
                 }
@@ -1037,8 +1049,16 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
           }
           break;
         }
-        if (audio_canPlay)
+        if (!audio_freeze) {
           audio_isPlaying = !audio_isPlaying;
+          if(audio_isPlaying) {
+            for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+              unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
+              row *currentRow = orders.at(i)->at(patternIndex)->at(0);
+              instrumentSystem.at(i)->set_row(*currentRow);
+            }
+          }
+        }
         break;
       }
       }
@@ -1150,8 +1170,10 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             moveDown = false;
             break;
           }
-          if (moveDown)
+          if (moveDown) {
             cursorPosition.y++;
+            global_unsavedChanges = true;
+          }
         } else if (selectedVariable == 1) {
           bool moveDown = true;
           switch (code) {
@@ -1197,8 +1219,10 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             moveDown = false;
             break;
           }
-          if (moveDown)
+          if (moveDown) {
             cursorPosition.y++;
+            global_unsavedChanges = true;
+          }
         } else if (selectedVariable < 4) {
           if ((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')) {
             unsigned char value;
@@ -1214,6 +1238,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
               cursorPosition.y++;
               cursorPosition.x--;
             }
+            global_unsavedChanges = true;
           }
         } else {
           unsigned char idx = (selectedVariable - 4) % 5;
@@ -1248,8 +1273,10 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
               moveDown = false;
               break;
             }
-            if (moveDown)
+            if (moveDown) {
               cursorPosition.y++;
+              global_unsavedChanges = true;
+            }
           } else if ((code >= '0' && code <= '9') ||
                      (code >= 'a' && code <= 'f')) {
             unsigned char value;
@@ -1266,6 +1293,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
               cursorPosition.x -= 3;
             } else
               cursorPosition.x++;
+            global_unsavedChanges = true;
           }
         }
       } else {
@@ -1278,7 +1306,8 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             indexes.addInst();
           } else if (global_currentMenu == GlobalMenus::order_menu) {
             indexes.addRow();
-          }
+          } else break;
+          global_unsavedChanges = true;
           break;
         }
         case 'x': {
@@ -1288,8 +1317,10 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             indexes.removeInst(cursorPosition.y);
             if (orders.tableCount() == 0)
               patternMenu_orderIndex = 0;
+            global_unsavedChanges = true;
           } else if (global_currentMenu == GlobalMenus::order_menu && indexes.rowCount() > 1) {
             indexes.removeRow(cursorPosition.y);
+            global_unsavedChanges = true;
           } else if (global_currentMenu == GlobalMenus::order_management_menu &&
                      cursorPosition.subMenu == 0 && orders.tableCount() > 0) {
             if (cursorPosition.x == 0)
@@ -1306,12 +1337,14 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             }
 
             orders.at(cursorPosition.y)->remove_order(cursorPosition.x);
+            global_unsavedChanges = true;
           }
           break;
         }
         case 'c': {
           if (global_currentMenu == GlobalMenus::instrument_menu && instrumentSystem.inst_count() > 0) {
             instrumentSystem.at(cursorPosition.y)->cycle_type();
+            global_unsavedChanges = true;
           } else if (global_currentMenu == GlobalMenus::order_management_menu &&
                      orders.tableCount() > 0) {
             if (cursorPosition.subMenu == 0) {
@@ -1347,13 +1380,16 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
             cursorPosition.subMenu = 0;
             cursorPosition.y = 0;
             cursorPosition.x = 0;
+            global_unsavedChanges = true;
           }
           break;
         }
         case 'w': {
           if (global_currentMenu == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
-            if (indexes.at(cursorPosition.y)->at(cursorPosition.x) < 254)
+            if (indexes.at(cursorPosition.y)->at(cursorPosition.x) < 254) {
               indexes.at(cursorPosition.y)->increment(cursorPosition.x);
+              global_unsavedChanges = true;
+            }
 
             while (indexes.at(cursorPosition.y)->at(cursorPosition.x) >=
                    orders.at(cursorPosition.x)->order_count())
@@ -1365,13 +1401,16 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
                   audio_tempo < 65525) {
                 audio_tempo += 10;
+                global_unsavedChanges = true;
               } else if (audio_tempo < 65534) {
                 audio_tempo++;
+                global_unsavedChanges = true;
               }
             } else {
               if (paternLength < 256) {
                 paternLength++;
                 orders.setRowCount(paternLength);
+                global_unsavedChanges = true;
               }
             }
           }
@@ -1379,8 +1418,10 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
         }
         case 's': {
           if (global_currentMenu == GlobalMenus::order_menu && instrumentSystem.inst_count() > 0) {
-            if (indexes.at(cursorPosition.y)->at(cursorPosition.x) > 0)
+            if (indexes.at(cursorPosition.y)->at(cursorPosition.x) > 0) {
               indexes.at(cursorPosition.y)->decrement(cursorPosition.x);
+              global_unsavedChanges = true;
+            }
           } else if (global_currentMenu == GlobalMenus::options_menu) {
             if (cursorPosition.y == 0) {
               // RPM
@@ -1388,13 +1429,16 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
                   audio_tempo > 40) {
                 audio_tempo -= 10;
+                global_unsavedChanges = true;
               } else if (audio_tempo > 30) {
                 audio_tempo--;
+                global_unsavedChanges = true;
               }
             } else {
               if (paternLength > 16) {
                 paternLength--;
                 orders.setRowCount(paternLength);
+                global_unsavedChanges = true;
               }
             }
           }
@@ -1612,6 +1656,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
     xOffset += 8 * 8;
     text_drawText(renderer, const_cast<char *>("File"), 1, xOffset, 0,
                   visual_whiteText, global_currentMenu == GlobalMenus::file_menu, windowWidth / 8);
+    xOffset += 5 * 8;
+    if(global_unsavedChanges) text_drawText(renderer, const_cast<char *>("Unsaved changes"), 1, xOffset, 0,
+                  global_currentMenu == GlobalMenus::quit_connfirmation_menu ? visual_redText : visual_yellowText, global_currentMenu == GlobalMenus::file_menu || global_currentMenu == GlobalMenus::quit_connfirmation_menu, windowWidth / 8);
     // l+=6;
     // text_drawText(renderer, const_cast<char *>("Order"), 1, l*8, 0,
     // visual_whiteText, global_state==preset_menu, windowWidth/8);
@@ -1831,7 +1878,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
               text_drawBigChar(renderer,
                                indexes_charToIdx(letters[hexNumberIndex]), 2,
                                hexNumberIndex * 16, y, visual_greyText,
-                               audio_isPlaying && cursorY == rowIndex);
+                               cursorY == rowIndex);
           }
           if (currentRow == 0) {
             if (patternMenu_instrumentCollumnWidth[static_cast<size_t>(
@@ -2268,6 +2315,17 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
                     2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }
+    case GlobalMenus::quit_connfirmation_menu: {
+      text_drawText(renderer,
+                      const_cast<char *>("Unsaved changes"), 2,
+                      (windowWidth-(15*16))/2, windowHeight/2-16, visual_redText, 0, fontTileCountW);  
+      text_drawText(renderer,
+                      const_cast<char *>("Press ESC again to quit anyway"), 2,
+                      (windowWidth-(30*16))/2, windowHeight/2, visual_whiteText, 0, fontTileCountW);  
+      text_drawText(renderer,
+                      const_cast<char *>("Press F7 to go to file menu"), 2,
+                      (windowWidth-(27*16))/2, windowHeight/2+16, visual_whiteText, 0, fontTileCountW);  
+    }
     }
   }
 }
@@ -2279,12 +2337,18 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
 void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
   SDL_Event event;
   int quit = 0;
-  while (!quit) {
+  while (true) {
     while (SDL_PollEvent(&event)) {
       sdlEventHandler(&event, quit);
     }
     screenUpdate(renderer, window);
     SDL_RenderPresent(renderer);
+    if(quit) {
+      if(global_unsavedChanges && global_currentMenu != GlobalMenus::quit_connfirmation_menu) {
+        quit = 0;
+        global_currentMenu = GlobalMenus::quit_connfirmation_menu;
+      } else break;
+    }
   }
 }
 
