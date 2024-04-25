@@ -35,6 +35,7 @@
 #include <SDL2/SDL_video.h>
 #include <algorithm>
 #include <climits>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -67,6 +68,7 @@ extern "C" {
 
 #define TILE_SIZE 96
 #define TILE_SIZE_F 96.0
+#define AUDIO_SAMPLE_COUNT 512
 
 #if defined(_WIN32)
 #define PATH_SEPERATOR_S "\\"
@@ -176,6 +178,7 @@ unsigned short patternMenu_orderIndex = 0;
 char /*******/ patternMenu_viewMode   = 3;
 int /********/ lastWindowWidth;
 int /********/ lastWindowHeight;
+Sint16 /*****/ waveformDisplay[AUDIO_SAMPLE_COUNT];
 
 /****************
  * File-related *
@@ -688,7 +691,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
            instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
         sample = std::min(32767,std::max(-32767,static_cast<Sint32>(sample) + static_cast<Sint32>(instrumentSystem.at(instrumentIdx)->gen()) / 4));
       }
-      data[audioIdx] = sample;
+      data[audioIdx] = waveformDisplay[audioIdx] = sample;
       audioTickTimers();
       audio_time++;
     }
@@ -711,6 +714,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
     }
     for (int i = 0; i < samples; i++) {
       data[i] /= 2;
+      waveformDisplay[i] = 0;
     }
   }
 }
@@ -744,7 +748,7 @@ void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
   audioSpec.freq = 48000;
   audioSpec.format = AUDIO_S16;
   audioSpec.channels = 1;
-  audioSpec.samples = 512;
+  audioSpec.samples = AUDIO_SAMPLE_COUNT;
   audioSpec.callback = audioCallback;
 
   if (SDL_OpenAudio(&audioSpec, NULL) < 0) {
@@ -1564,9 +1568,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
   }
 
   // *not* background
-  int i = 0;
-  const char *str = "chTRACKER";
   if (global_currentMenu == GlobalMenus::main_menu) {
+    int i = 0;
+    const char *str = "chTRACKER";
     while (str[i] != 0) {
       text_drawBigChar(
           renderer, indexes_charToIdx(str[i]), 4,
@@ -1608,6 +1612,28 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
           1, 0, 0, visual_whiteText, 0, fontTileCountW * 2);
     }
   } else {
+    if(audio_isPlaying) {
+      unsigned int lastY = 0;
+      unsigned int lastX = 0;
+      for(size_t i = 0; i < AUDIO_SAMPLE_COUNT; i++) {
+        unsigned int y;
+        {
+          float point = static_cast<float>(waveformDisplay[i]); // Sint16[AUDIO_SAMPLE_COUNT]
+          // if(i&1) point *= -1;
+          y = static_cast<unsigned int>(((point / (INT16_MAX+1.0))+1.0) * (windowHeight-16.0) / 2.0) + 16;
+        }
+        unsigned int x = static_cast<unsigned int>(
+          static_cast<float>(i)/
+          static_cast<float>(AUDIO_SAMPLE_COUNT-1)*
+          static_cast<float>(windowWidth)
+          );
+        line_drawLine(renderer, lastX, lastY, x, y, { .r=64, .g=128, .b=255, .a=255 });
+        // visual_makeDotGrayscale(renderer, x, y, 255);
+        lastY = y;
+        lastX = x;
+      }
+    }
+
     short xOffset = 0;
     text_drawText(renderer, const_cast<char *>("Help!"), 1, xOffset, 0,
                   visual_whiteText, global_currentMenu == GlobalMenus::help_menu, windowWidth / 8);
