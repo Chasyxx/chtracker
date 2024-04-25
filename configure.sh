@@ -3,7 +3,7 @@
 WARNINGS=0
 COUNT_WARNINGS=0
 
-on() { ! [ -v $1 ]; }
+on() { ! test -v $1; }
 
 # Default values
 WERROR_ENABLED=1
@@ -63,7 +63,7 @@ print_usage() {
 }
 
 availible() { command -v $1 1> /dev/null; }
-exists() { stat $1 1> /dev/null 2> /dev/null; }
+exists() { test -e $1; }
 pass() { echo -e $2 "\e[32m[PASS!]\e[0m $1" 1>&2; }
 notice() { echo -e $2 "\e[34m[INFO ]\e[0m $1" 1>&2; }
 warning() { echo -e $2 "\e[33m[ WARN]\e[0m $1" 1>&2; [ $COUNT_WARNINGS -eq 1 ] && WARNINGS=`expr $WARNINGS + 1`;}

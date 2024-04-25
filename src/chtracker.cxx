@@ -58,8 +58,6 @@ extern "C" {
 #include "order.hxx"
 #include "timer.hxx"
 
-int lastWindowWidth, lastWindowHeight;
-
 /**************************************
  *                                    *
  *            MACRO SECTION           *
@@ -173,9 +171,11 @@ instrumentStorage instrumentSystem;
  *********/
 
 CursorPos /**/ cursorPosition;
-GlobalMenus    global_currentMenu /*******/ = GlobalMenus::main_menu;
+GlobalMenus    global_currentMenu     = GlobalMenus::main_menu;
 unsigned short patternMenu_orderIndex = 0;
 char /*******/ patternMenu_viewMode   = 3;
+int /********/ lastWindowWidth;
+int /********/ lastWindowHeight;
 
 /****************
  * File-related *
@@ -217,8 +217,8 @@ void write32LE(unsigned char *buffer, unsigned int a, size_t &bufferIdx) {
 }
 
 void write16LE(unsigned char *buffer, unsigned short a, size_t &bufferIdx) {
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a    &255));
-  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8 &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a   &255));
+  buffer[bufferIdx++]=(static_cast<unsigned char>(a>>8&255));
 }
 
 /***********************************
@@ -265,6 +265,42 @@ void hex4(unsigned short a, char *s) {
     s[3] = 'A' + (a & 15) - 10;
   else
     s[3] = '0' + (a & 15);
+}
+
+/***********************
+ * Audio timer handler *
+ ***********************/
+
+void audioTickTimers() {
+  timerSystem.tick();
+  if (timerSystem.isComplete("row")) {
+    audio_row++;
+    if (audio_row >= orders.at(0)->at(0)->rowCount()) {
+      audio_row = 0;
+      audio_pattern++;
+      if (audio_pattern >= indexes.rowCount()) {
+        audio_pattern = 0;
+      }
+    }
+    timerSystem.resetTimer("row", 48000 * 60 / audio_tempo);
+    for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+      unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
+      row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
+      instrumentSystem.at(i)->set_row(*currentRow);
+    }
+  }
+  if (timerSystem.isComplete("effect")) {
+    for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+      instrumentSystem.at(i)->applyFx();
+    }
+    timerSystem.resetTimer("effect", 375 * 960 / audio_tempo);
+  }
+  if (timerSystem.isComplete("arpeggio")) {
+    for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+      instrumentSystem.at(i)->applyArpeggio();
+    }
+    timerSystem.resetTimer("arpeggio", 1500 * 960 / audio_tempo);
+  }
 }
 
 /******************
@@ -530,7 +566,8 @@ int renderTo(std::filesystem::path path) {
   songLength *= indexes.rowCount();
   songLength /= audio_tempo;
   // Make a buffer whose length is the file size
-  unsigned char *buffer = new unsigned char[songLength + 44];
+  size_t fileSize = (songLength*2) + 44;
+  unsigned char *buffer = new unsigned char[fileSize];
   size_t headerIdx = 0;
   // Write a WAV header
   {
@@ -538,7 +575,7 @@ int renderTo(std::filesystem::path path) {
     strcpy(reinterpret_cast<char*>(&buffer[0]), "RIFF"); // up to 3 (null at 4 must be overwritten)
     headerIdx+=4;
     // File size - 8 (song size + 36)
-    write32LE(buffer, songLength + 36, headerIdx);
+    write32LE(buffer, fileSize-8, headerIdx);
     // WAVEfmt\0
     strcpy(reinterpret_cast<char*>(&buffer[headerIdx]), "WAVEfmt "); // up to 15 (null at 16 must be overwritten)
     headerIdx+=8;
@@ -552,19 +589,19 @@ int renderTo(std::filesystem::path path) {
     {
       constexpr unsigned int sampleRate = 48000;
       write32LE(buffer, sampleRate, headerIdx);
-      // Again (sr*8*1)/8 = sr
+      // Again (sr*16*1)/8 = sr * 2
       // (samplerate * bit depth * channel count) / 8
-      write32LE(buffer, sampleRate, headerIdx);
+      write32LE(buffer, sampleRate * 2, headerIdx);
     }
-    // 8 bit mono
-    write16LE(buffer, 1, headerIdx);
-    // 8 bits
-    write16LE(buffer, 8, headerIdx);
+    // 16 bit mono
+    write16LE(buffer, 2, headerIdx);
+    // 16 bits
+    write16LE(buffer, 16, headerIdx);
     // data
     strcpy(reinterpret_cast<char*>(&buffer[36]), "data"); // up to 39 (null at 40 must be overwritten)
     headerIdx+=4;
-    // song length
-    write32LE(buffer, songLength, headerIdx);
+    // Data chunk length
+    write32LE(buffer, fileSize-44, headerIdx);
   }
   audio_pattern = 0;
   audio_row = 0;
@@ -587,44 +624,14 @@ int renderTo(std::filesystem::path path) {
     instrumentSystem.at(i)->set_row(*currentRow);
   }
   for (unsigned int audioIdx = 0; audioIdx < songLength; audioIdx++) {
-    unsigned char sample = 0;
+    short sample = 0;
     for (unsigned char instrumentIdx = 0;
-         instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
-      sample = static_cast<unsigned char>(
-          std::min(255, static_cast<unsigned short>(sample) +
-                            static_cast<unsigned short>(
-                                instrumentSystem.at(instrumentIdx)->gen() / 4)));
+          instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
+      sample = std::min(32767,std::max(-32767,static_cast<Sint32>(sample) + static_cast<Sint32>(instrumentSystem.at(instrumentIdx)->gen()) / 4));
     }
-    buffer[audioIdx + headerIdx] = sample;
-    timerSystem.tick();
-    if (timerSystem.isComplete("row")) {
-      audio_row++;
-      if (audio_row >= orders.at(0)->at(0)->rowCount()) {
-        audio_row = 0;
-        audio_pattern++;
-        if (audio_pattern >= indexes.rowCount()) {
-          audio_pattern = 0;
-        }
-      }
-      timerSystem.resetTimer("row", 0);
-      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-        unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
-        row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
-        instrumentSystem.at(i)->set_row(*currentRow);
-      }
-    }
-    if (timerSystem.isComplete("effect")) {
-      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-        instrumentSystem.at(i)->applyFx();
-      }
-      timerSystem.resetTimer("effect", 0);
-    }
-    if (timerSystem.isComplete("arpeggio")) {
-      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-        instrumentSystem.at(i)->applyArpeggio();
-      }
-      timerSystem.resetTimer("arpeggio", 0);
-    }
+    buffer[audioIdx*2+44] = sample<<8;
+    buffer[audioIdx*2+45] = sample>>8;
+    audioTickTimers();
   }
   if (timerSystem.hasTimer("row"))
     timerSystem.removeTimer("row");
@@ -633,7 +640,7 @@ int renderTo(std::filesystem::path path) {
   if (timerSystem.hasTimer("arpeggio"))
     timerSystem.removeTimer("arpeggio");
   audio_freeze = false;
-  file.write(reinterpret_cast<char*>(buffer),songLength+44);
+  file.write(reinterpret_cast<char*>(buffer),fileSize);
   file.close();
   delete[] buffer;
   return 0;
@@ -645,6 +652,9 @@ int renderTo(std::filesystem::path path) {
 
 void audioCallback(void *userdata, Uint8 *stream, int len) {
   (void)userdata;
+  int samples = len / 2;
+  Sint16 *data = reinterpret_cast<Sint16*>(stream);
+
   if (audio_freeze) {
     for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
       stream[i] =
@@ -671,46 +681,17 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
       timerSystem.addTimer("effect", 375 * 960 / audio_tempo);
     if (!timerSystem.hasTimer("arpeggio"))
       timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tempo);
-    for (unsigned int audioIdx = 0; audioIdx < static_cast<unsigned int>(len);
+
+    for (unsigned int audioIdx = 0; audioIdx < static_cast<unsigned int>(samples);
          audioIdx++) {
-      unsigned char sample = 0;
+      Sint16 sample = 0;
       for (unsigned char instrumentIdx = 0;
            instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
-        sample = static_cast<unsigned char>(
-            std::min(255, static_cast<unsigned short>(sample) +
-                              static_cast<unsigned short>(
-                                  instrumentSystem.at(instrumentIdx)->gen() / 4)));
+        sample = std::min(32767,std::max(-32767,static_cast<Sint32>(sample) + static_cast<Sint32>(instrumentSystem.at(instrumentIdx)->gen()) / 4));
       }
-      stream[audioIdx] = sample;
-      timerSystem.tick();
-      if (timerSystem.isComplete("row")) {
-        audio_row++;
-        if (audio_row >= orders.at(0)->at(0)->rowCount()) {
-          audio_row = 0;
-          audio_pattern++;
-          if (audio_pattern >= indexes.rowCount()) {
-            audio_pattern = 0;
-          }
-        }
-        timerSystem.resetTimer("row", 48000 * 60 / audio_tempo);
-        for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-          unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
-          row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
-          instrumentSystem.at(i)->set_row(*currentRow);
-        }
-      }
-    }
-    if (timerSystem.isComplete("effect")) {
-      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-        instrumentSystem.at(i)->applyFx();
-      }
-      timerSystem.resetTimer("effect", 375 * 960 / audio_tempo);
-    }
-    if (timerSystem.isComplete("arpeggio")) {
-      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-        instrumentSystem.at(i)->applyArpeggio();
-      }
-      timerSystem.resetTimer("arpeggio", 1500 * 960 / audio_tempo);
+      data[audioIdx] = sample;
+      audioTickTimers();
+      audio_time++;
     }
   } else {
     if (!audio_freeze) {
@@ -734,7 +715,6 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
           static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
     }
   }
-  audio_time += len;
 }
 
 /******************
@@ -764,9 +744,9 @@ void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
   SDL_AudioSpec audioSpec;
 
   audioSpec.freq = 48000;
-  audioSpec.format = AUDIO_U8;
+  audioSpec.format = AUDIO_S16;
   audioSpec.channels = 1;
-  audioSpec.samples = 256;
+  audioSpec.samples = 512;
   audioSpec.callback = audioCallback;
 
   if (SDL_OpenAudio(&audioSpec, NULL) < 0) {

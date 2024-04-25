@@ -18,12 +18,12 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#include "order.hxx"
-#include "channel.hxx"
 #include <climits>
 #include <cmath>
 #include <stdexcept>
 #include <vector>
+#include "order.hxx"
+#include "channel.hxx"
 
 audioChannel::audioChannel(audioChannelType type): 
     noiseLFSR(1), 
@@ -164,39 +164,39 @@ void audioChannel::applyArpeggio() {
     }
 }
 
-unsigned char audioChannel::gen() {
+short audioChannel::gen() {
     if(status.feature == rowFeature::empty) return 0;
     float Hz = std::pow(2,(status.note-'A'-48+(effects.arpeggioIndex==0?0:effects.arpeggio[effects.arpeggioIndex-1]))/12.0+status.octave)*440;
     Hz += effects.pitchOffset/512.0;
     if(Hz<=0) return 0; // DC or reverse; we don't want reverse!
-    unsigned char final_volume = static_cast<unsigned char>(static_cast<unsigned short>( std::min(255.0, std::max(0.0, 255.0+effects.volumeOffset/2048.0)*status.volume/255.0 )));
+    short final_volume = static_cast<short>(std::min(255.0,std::max(0.0,status.volume * (255.0 + effects.volumeOffset/2048.0) / 255.0))) * 128;
     float change = 1.0/48000.0*Hz;
     if(channelType == audioChannelType::lfsr8) phase+=change;
     else if(channelType == audioChannelType::lfsr14) phase+=change;
     else phase=static_cast<float>(std::fmod(phase+change,1.0));
     switch(channelType) {
         case audioChannelType::null: return 0;
-        case audioChannelType::pulse: return static_cast<unsigned short>(phase*USHRT_MAX)>effects.instrumentVariation?final_volume:0;
+        case audioChannelType::pulse: return static_cast<unsigned short>(phase*USHRT_MAX)>effects.instrumentVariation?final_volume:-final_volume;
         case audioChannelType::lfsr8: {
             while(phase>1) {
                 phase-=1;
                 noiseLFSRTick(8);
             }
-            return (noiseLFSR&1)*final_volume;
+            return (noiseLFSR&1)?final_volume:-final_volume;
         }
         case audioChannelType::lfsr14: {
             while(phase>1) {
                 phase-=1;
                 noiseLFSRTick(14);
             }
-            return (noiseLFSR&1)*final_volume;
+            return (noiseLFSR&1)?final_volume:-final_volume;
         }
-        case audioChannelType::triangle: return static_cast<unsigned char>(std::fmod(std::abs(phase*(effects.instrumentVariation/16384.0+2.0)-1.0),1.0)*final_volume);
-        case audioChannelType::sawtooth: return static_cast<unsigned char>(
-            static_cast<float>(
+        case audioChannelType::triangle: return static_cast<short>((std::fmod(std::abs(phase*(effects.instrumentVariation/16384.0+2.0)-1.0),1.0)-0.5)*final_volume*2.0);
+        case audioChannelType::sawtooth: return static_cast<short>(
+            (static_cast<float>(
                 (static_cast<unsigned short>(phase*USHRT_MAX)&~effects.instrumentVariation)^
                 (static_cast<unsigned short>(std::fmod(phase*1.5,1.0)*USHRT_MAX)&effects.instrumentVariation)
-            )/USHRT_MAX*final_volume
+            )/USHRT_MAX-0.5)*final_volume*2.0
         );
     }
     return 0;

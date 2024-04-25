@@ -60,7 +60,7 @@ class audioChannel {
     void noiseLFSRTick(char width);
     void applyFx();
     void applyArpeggio();
-    unsigned char gen();
+    short gen();
 };
 
 class instrumentStorage {
