@@ -263,14 +263,14 @@ F2 - Order menu
     menu is made for putting those
     together!
     [Z] - Add a new order row
-    [X] - Remove thr rou you're on
+    [X] - Remove the row you're on
     [W] - Increment the selected pattern
     [S] - W but with decrement
-    An order row holds as many collums
+    An order row holds as many columns
     as there are instruments.
-    Instrument 0 has collumn 0, for
+    Instrument 0 has column 0, for
     example.
-    Each square (00 inisially)
+    Each square (00 initially)
     represents what pattern the
     instrument should play at that time.
     When the end of the pattern is
