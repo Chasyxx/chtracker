@@ -656,9 +656,8 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
   Sint16 *data = reinterpret_cast<Sint16*>(stream);
 
   if (audio_freeze) {
-    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
-      stream[i] =
-          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
+    for (int i = 0; i < samples; i++) {
+      data[i] /= 2;
     }
     audio_isFrozen = true;
     return;
@@ -666,11 +665,11 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
   audio_isFrozen = false;
 
   if (global_currentMenu == GlobalMenus::main_menu) {
-    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
+    for (unsigned int i = 0; i < static_cast<unsigned int>(samples); i++) {
       unsigned long t = audio_time + i;
-      stream[i] = (t * 3 / 2 & t >> 8) | (t * 5 / 4 & t >> 11);
+      data[i] = (-(3*t>>5&t>>14&t>>6)*t<<1)|(t*5*128&t<<1);
     }
-    audio_time += len;
+    audio_time += samples;
     return;
   }
 
@@ -710,9 +709,8 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
         instrumentSystem.at(i)->set_row(dummyRow);
       }
     }
-    for (unsigned int i = 0; i < static_cast<unsigned int>(len); i++) {
-      stream[i] =
-          static_cast<Uint8>((static_cast<short>(stream[i]) - 128) / 2 + 128);
+    for (int i = 0; i < samples; i++) {
+      data[i] /= 2;
     }
   }
 }
