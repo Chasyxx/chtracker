@@ -366,6 +366,9 @@ channel.oxx: channel/channel.cxx
 timer.oxx: timer/timer.cxx
 	@\$(MAKE) -C timer
 
+chtracker.oxx: chtracker.cxx screenUpdate.cxx onKeydown.cxx
+	\$(CXX) \$(CFLAGS) -c -o \$@ \$<
+
 %.out: %.o
 	\$(CC) \$(LIBS) -o \$@ \$<
 
