@@ -225,18 +225,21 @@ TT |NO VV Eeeee Eeeee|NO VV Eeeee Eeeee|
      - [V] increases the view mode
      - [U] decreases the view mode
      - Letters A-L will change the
-       note while an N collumn is
+       note while an N column is
        selected
      - Numbers 0-9 will change octave
-       while an O collumn is selected
+       while an O column is selected
      - Hexadecimal numbers can change
-       E and eeee collumns
+       E and eeee columns
      - [N] goes to the next order in
        the song
      - [P] goes to the previous order
-     - [-] on N or O collums clears the
-       note. on E collums clears the
+     - [-] on N or O colums clears the
+       note. on E colums clears the
        effect.
+     - [=] on N or O columns places a
+       note cut (stops the note that
+       is playing)
 
     If you edit an E collum with an
     invalid effect nothing will happen.
