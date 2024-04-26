@@ -1,4 +1,4 @@
-name: compile
+name: Compile with GCC
 
 on:
   push:
@@ -10,18 +10,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  install_sdl:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install SDL
-      run: sudo apt-get install libsdl2-dev
-
   build:
     runs-on: ubuntu-latest
-    needs: install_sdl
     steps:
     - uses: actions/checkout@v4
+    - name: Install SDL libraries
+      run: sudo apt-get install libsdl2-dev
 
     - name: configure
       run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0" ./configure.sh --disable-sdl
