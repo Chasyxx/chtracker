@@ -16,9 +16,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install SDL2
-      run: sudo apt-get install -y libsdl2-dev
+
+    - name: Setup SDL
+      uses: libsdl-org/setup-sdl@v1
+
     - name: configure
-      run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0" ./configure.sh --disable-sdl
+      run: ./configure.sh
     - name: make
       run: make
