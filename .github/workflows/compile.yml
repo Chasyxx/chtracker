@@ -18,6 +18,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install SDL2
       run: sudo apt-get install -y libsdl2-dev
+    - name: Attain SDL2's library path
+      run: dpkg-query -L libsdl2-dev | grep libSDL2
     - name: configure
       run: LIBS="-L/usr/lib" ./configure.sh
     - name: make
