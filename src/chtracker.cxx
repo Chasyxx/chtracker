@@ -58,6 +58,7 @@ extern "C" {
 #include "channel.hxx"
 #include "order.hxx"
 #include "timer.hxx"
+#include "main.h"
 
 /**************************************
  *                                    *
@@ -68,7 +69,6 @@ extern "C" {
 
 #define TILE_SIZE 96
 #define TILE_SIZE_F 96.0
-#define AUDIO_SAMPLE_COUNT 512
 
 #if defined(_WIN32)
 #define PATH_SEPERATOR_S "\\"
@@ -82,57 +82,6 @@ extern "C" {
 #define PATH_SEPERATOR '/'
 #define HOPEFULLY_POSIX
 #endif
-
-/***********************************************
- *                                             *
- *           ENUM AND SCRUCT SECTION           *
- *   All enum AND struct DEFINITIONS GO HERE   *
- *                                             *
- ***********************************************/
-
-enum class GlobalMenus {
-  main_menu,
-
-  help_menu,
-  order_menu,
-  pattern_menu,
-  instrument_menu,
-  order_management_menu,
-  options_menu,
-  file_menu,
-  save_file_menu,
-  render_menu,
-  quit_connfirmation_menu
-};
-
-struct Selection {
-  unsigned int x = 0;
-  unsigned int y = 0;
-};
-
-struct CursorPos {
-  unsigned int x = 0;
-  unsigned int y = 0;
-  unsigned char subMenu = 0;
-  struct Selection selection;
-};
-
-/********************************************************
- *                                                      *
- *                  CONSTEXPR SECTION                   *
- *   All GLOBAL const AND constexpr VARIABLES GO HERE   *
- *                                                      *
- ********************************************************/
-
-constexpr unsigned char global_majorVersion /**/ = 0x00;
-constexpr unsigned char global_minorVersion /**/ = 0x03;
-constexpr unsigned char global_patchVersion /**/ = 0x00;
-constexpr unsigned char global_prereleaseVersion = 0x00;
-
-constexpr unsigned char patternMenu_instrumentCollumnWidth[] = {3,  6,  12,
-                                                                18, 24, 30};
-constexpr unsigned char patternMenu_instrumentVariableCount[] = {2,  4,  9,
-                                                                 14, 19, 24};
 
 /************************************
  *                                  *
