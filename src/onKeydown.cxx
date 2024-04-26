@@ -291,52 +291,42 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
           r->feature = rowFeature::note;
           r->note = 'B';
           break;
-        case 'c':
         case '2':
           r->feature = rowFeature::note;
           r->note = 'C';
           break;
-        case 'd':
         case '3':
           r->feature = rowFeature::note;
           r->note = 'D';
           break;
-        case 'e':
         case '4':
           r->feature = rowFeature::note;
           r->note = 'E';
           break;
-        case 'f':
         case '5':
           r->feature = rowFeature::note;
           r->note = 'F';
           break;
-        case 'g':
         case '6':
           r->feature = rowFeature::note;
           r->note = 'G';
           break;
-        case 'h':
         case '7':
           r->feature = rowFeature::note;
           r->note = 'H';
           break;
-        case 'i':
         case '8':
           r->feature = rowFeature::note;
           r->note = 'I';
           break;
-        case 'j':
         case '9':
           r->feature = rowFeature::note;
           r->note = 'J';
           break;
-        case 'k':
         case 'a':
           r->feature = rowFeature::note;
           r->note = 'K';
           break;
-        case 'l':
         case 'b':
           r->feature = rowFeature::note;
           r->note = 'L';
