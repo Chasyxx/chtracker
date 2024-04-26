@@ -1,30 +1,30 @@
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_video.h>
-#include <SDL2/SDL_stdinc.h>
 #include <climits>
-#include <string>
-#include <iostream>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <string>
 
 #include "main.h"
 
 extern "C" {
-  #include "visual.h"
+#include "visual.h"
 }
-#include "order.hxx"
 #include "channel.hxx"
+#include "order.hxx"
 
 #define TILE_SIZE 96
 #define TILE_SIZE_F 96.0
 
 #if defined(_WIN32)
-  #define PATH_SEPERATOR_S "\\"
-  #define PATH_SEPERATOR '\\'
+#define PATH_SEPERATOR_S "\\"
+#define PATH_SEPERATOR '\\'
 #else
-  #define PATH_SEPERATOR_S "/"
-  #define PATH_SEPERATOR '/'
+#define PATH_SEPERATOR_S "/"
+#define PATH_SEPERATOR '/'
 #endif
 
 char hex(char a) {
@@ -115,7 +115,7 @@ char *getTypeName(audioChannelType type, bool short_name) {
     str = const_cast<char *>("Sawtooth");
     break;
   default:
-  if (short_name) {
+    if (short_name) {
       str = const_cast<char *>("??");
       break;
     };
@@ -137,17 +137,19 @@ void barrierVertical(SDL_Renderer *r, unsigned int x, int windowHeight) {
   SDL_RenderFillRect(r, &borderRectangle);
 }
 
-void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWidth,
-                    int& lastWindowHeight, const GlobalMenus currentMenu,
-                    const bool isAudioPlaying, const Sint16 *waveformDisplay,
-                    const bool hasUnsavedChanges, const CursorPos& cursorPosition,
-                    orderIndexStorage& indexes, const unsigned short currentPattern,
-                    const unsigned char currentRow, orderStorage &orders,
-                    const unsigned short currentlyViewedOrder, const char currentViewMode,
-                    instrumentStorage& instruments, const unsigned short tempo,
-                    const unsigned short paternLength, const char* errorText,
-                    const std::string& fileMenuDirectory, const std::string saveFileName,
-                    const std::string renderFileName) {
+void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
+                  int &lastWindowWidth, int &lastWindowHeight,
+                  const GlobalMenus currentMenu, const bool isAudioPlaying,
+                  const Sint16 *waveformDisplay, const bool hasUnsavedChanges,
+                  const CursorPos &cursorPosition, orderIndexStorage &indexes,
+                  const unsigned short currentPattern,
+                  const unsigned char currentRow, orderStorage &orders,
+                  const unsigned short currentlyViewedOrder,
+                  const char currentViewMode, instrumentStorage &instruments,
+                  const unsigned short tempo, const unsigned short paternLength,
+                  const char *errorText, const std::string &fileMenuDirectory,
+                  const std::string saveFileName,
+                  const std::string renderFileName) {
   long millis = SDL_GetTicks64();
   int windowWidth, windowHeight;
   SDL_GetWindowSize(window, &windowWidth, &windowHeight);
@@ -232,22 +234,24 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           1, 0, 0, visual_whiteText, 0, fontTileCountW * 2);
     }
   } else {
-    if(isAudioPlaying) {
+    if (isAudioPlaying) {
       unsigned int lastY = 0;
       unsigned int lastX = 0;
-      for(size_t i = 0; i < AUDIO_SAMPLE_COUNT; i++) {
+      for (size_t i = 0; i < AUDIO_SAMPLE_COUNT; i++) {
         unsigned int y;
         {
-          float point = static_cast<float>(waveformDisplay[i]); // Sint16[AUDIO_SAMPLE_COUNT]
+          float point = static_cast<float>(
+              waveformDisplay[i]); // Sint16[AUDIO_SAMPLE_COUNT]
           // if(i&1) point *= -1;
-          y = static_cast<unsigned int>(((point / (INT16_MAX+1.0))+1.0) * (windowHeight-16.0) / 2.0) + 16;
+          y = static_cast<unsigned int>(((point / (INT16_MAX + 1.0)) + 1.0) *
+                                        (windowHeight - 16.0) / 2.0) +
+              16;
         }
         unsigned int x = static_cast<unsigned int>(
-          static_cast<float>(i)/
-          static_cast<float>(AUDIO_SAMPLE_COUNT-1)*
-          static_cast<float>(windowWidth)
-          );
-        line_drawLine(renderer, lastX, lastY, x, y, { .r=64, .g=128, .b=255, .a=255 });
+            static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_COUNT - 1) *
+            static_cast<float>(windowWidth));
+        line_drawLine(renderer, lastX, lastY, x, y,
+                      {.r = 64, .g = 128, .b = 255, .a = 255});
         // visual_makeDotGrayscale(renderer, x, y, 255);
         lastY = y;
         lastX = x;
@@ -256,7 +260,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
 
     short xOffset = 0;
     text_drawText(renderer, const_cast<char *>("Help!"), 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::help_menu, windowWidth / 8);
+                  visual_whiteText, currentMenu == GlobalMenus::help_menu,
+                  windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("Order"), 1, xOffset, 0,
                   visual_whiteText, currentMenu == GlobalMenus::order_menu,
@@ -271,7 +276,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                   windowWidth / 8);
     xOffset += 6 * 8;
     text_drawText(renderer, const_cast<char *>("OrdMan."), 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::order_management_menu,
+                  visual_whiteText,
+                  currentMenu == GlobalMenus::order_management_menu,
                   windowWidth / 8);
     xOffset += 8 * 8;
     text_drawText(renderer, const_cast<char *>("Options"), 1, xOffset, 0,
@@ -279,10 +285,18 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                   windowWidth / 8);
     xOffset += 8 * 8;
     text_drawText(renderer, const_cast<char *>("File"), 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::file_menu, windowWidth / 8);
+                  visual_whiteText, currentMenu == GlobalMenus::file_menu,
+                  windowWidth / 8);
     xOffset += 5 * 8;
-    if(hasUnsavedChanges) text_drawText(renderer, const_cast<char *>("Unsaved changes"), 1, xOffset, 0,
-                  currentMenu == GlobalMenus::quit_connfirmation_menu ? visual_redText : visual_yellowText, currentMenu == GlobalMenus::file_menu || currentMenu == GlobalMenus::quit_connfirmation_menu, windowWidth / 8);
+    if (hasUnsavedChanges)
+      text_drawText(renderer, const_cast<char *>("Unsaved changes"), 1, xOffset,
+                    0,
+                    currentMenu == GlobalMenus::quit_connfirmation_menu
+                        ? visual_redText
+                        : visual_yellowText,
+                    currentMenu == GlobalMenus::file_menu ||
+                        currentMenu == GlobalMenus::quit_connfirmation_menu,
+                    windowWidth / 8);
     // l+=6;
     // text_drawText(renderer, const_cast<char *>("Order"), 1, l*8, 0,
     // visual_whiteText, global_state==preset_menu, windowWidth/8);
@@ -499,10 +513,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
             hex2(rowIndex, letters[0], letters[1]);
             for (unsigned char hexNumberIndex = 0; hexNumberIndex < 2;
                  hexNumberIndex++)
-              text_drawBigChar(renderer,
-                               indexes_charToIdx(letters[hexNumberIndex]), 2,
-                               hexNumberIndex * 16, y, visual_greyText,
-                               cursorY == rowIndex);
+              text_drawBigChar(
+                  renderer, indexes_charToIdx(letters[hexNumberIndex]), 2,
+                  hexNumberIndex * 16, y, visual_greyText, cursorY == rowIndex);
           }
           if (currentRow == 0) {
             if (patternMenu_instrumentCollumnWidth[static_cast<size_t>(
@@ -542,9 +555,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           row *r = currentOrder->at(rowIndex);
           switch (r->feature) {
           case rowFeature::note: {
-            text_drawBigChar(renderer, indexes_charToIdx(hex(r->note-'A')), 2,
-                             16 * (4 + localCurrentCollumn), y,
-                             visual_blueText,
+            text_drawBigChar(renderer, indexes_charToIdx(hex(r->note - 'A')), 2,
+                             16 * (4 + localCurrentCollumn), y, visual_blueText,
                              (rowSeleted && selectedVariable == 0) ||
                                  (isAudioPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx(hex(r->octave)), 2,
@@ -571,13 +583,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           }
           case rowFeature::empty: {
             text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
-                             16 * (4 + localCurrentCollumn), y,
-                             visual_greyText,
+                             16 * (4 + localCurrentCollumn), y, visual_greyText,
                              (rowSeleted && selectedVariable == 0) ||
                                  (isAudioPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
-                             16 * (5 + localCurrentCollumn), y,
-                             visual_greyText,
+                             16 * (5 + localCurrentCollumn), y, visual_greyText,
                              (rowSeleted && selectedVariable == 1) ||
                                  (isAudioPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
@@ -625,8 +635,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           }
           }
 
-          for (unsigned char i = 0; i < std::max(currentViewMode - 1, 0) &&
-                                    i < r->effects.size();
+          for (unsigned char i = 0;
+               i < std::max(currentViewMode - 1, 0) && i < r->effects.size();
                i++) {
             char effect_number = '?';
             bool effect_autoreset = false;
@@ -846,8 +856,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                       const_cast<char *>("Welcome to the FILE PICKER"), 2, 0,
                       16, visual_whiteText, 0, fontTileCountW);
       } else {
-        text_drawText(renderer, const_cast<char*>(errorText), 2, 0, 16, visual_redText, 0,
-                      fontTileCountW);
+        text_drawText(renderer, const_cast<char *>(errorText), 2, 0, 16,
+                      visual_redText, 0, fontTileCountW);
       }
       barrier(renderer, 32, windowWidth);
       text_drawText(renderer, const_cast<char *>("S to save a file"), 2, 0, 48,
@@ -858,10 +868,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("ESC to go to parent dir."), 2,
                     0, 96, visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    const_cast<char *>(
-                        (fileMenuDirectory + PATH_SEPERATOR_S).c_str()),
-                    2, 0, 112, visual_whiteText, 0, INT_MAX);
+      text_drawText(
+          renderer,
+          const_cast<char *>((fileMenuDirectory + PATH_SEPERATOR_S).c_str()), 2,
+          0, 112, visual_whiteText, 0, INT_MAX);
       unsigned short y = 128;
       int i = 0;
       int initialEntry = std::max(0, static_cast<int>(cursorPosition.y) -
@@ -889,12 +899,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
               break;
           }
         } else {
-          errorText =
-              const_cast<char *>("Directory not found or invalid.");
+          errorText = const_cast<char *>("Directory not found or invalid.");
         }
       } catch (std::filesystem::filesystem_error &error) {
-        errorText =
-            const_cast<char *>("Filesystem error reading directory");
+        errorText = const_cast<char *>("Filesystem error reading directory");
       }
       if (i >= initialEntry && y < windowHeight)
         text_drawText(renderer, const_cast<char *>(".."), 2, 0, y,
@@ -905,50 +913,51 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
     case GlobalMenus::save_file_menu: {
       text_drawText(renderer, const_cast<char *>("Saving to"), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    const_cast<char *>(
-                        (fileMenuDirectory + PATH_SEPERATOR_S).c_str()),
-                    2, 160, 16, visual_whiteText, 0, fontTileCountW - 10);
+      text_drawText(
+          renderer,
+          const_cast<char *>((fileMenuDirectory + PATH_SEPERATOR_S).c_str()), 2,
+          160, 16, visual_whiteText, 0, fontTileCountW - 10);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
                       const_cast<char *>("That file exists, are you sure?"), 2,
-                      0, windowHeight-16, visual_redText, 0, fontTileCountW);
+                      0, windowHeight - 16, visual_redText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Type a filename:"), 2, 0, 128,
                     visual_whiteText, 0, fontTileCountW - 10);
-      text_drawText(renderer, const_cast<char *>(saveFileName.c_str()),
-                    2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
+      text_drawText(renderer, const_cast<char *>(saveFileName.c_str()), 2, 0,
+                    144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }
     case GlobalMenus::render_menu: {
       text_drawText(renderer, const_cast<char *>("Rendering to"), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    const_cast<char *>(
-                        (fileMenuDirectory + PATH_SEPERATOR_S).c_str()),
-                    2, 16*13, 16, visual_whiteText, 0, fontTileCountW - 13);
+      text_drawText(
+          renderer,
+          const_cast<char *>((fileMenuDirectory + PATH_SEPERATOR_S).c_str()), 2,
+          16 * 13, 16, visual_whiteText, 0, fontTileCountW - 13);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
                       const_cast<char *>("That file exists, are you sure?"), 2,
-                      0, windowHeight-32, visual_redText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    const_cast<char *>("Program may not respond during render"), 2,
-                    0, windowHeight-16, visual_yellowText, 0, fontTileCountW);
+                      0, windowHeight - 32, visual_redText, 0, fontTileCountW);
+      text_drawText(
+          renderer, const_cast<char *>("Program may not respond during render"),
+          2, 0, windowHeight - 16, visual_yellowText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Type a filename:"), 2, 0, 128,
                     visual_whiteText, 0, fontTileCountW - 10);
-      text_drawText(renderer, const_cast<char *>(renderFileName.c_str()),
-                    2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
+      text_drawText(renderer, const_cast<char *>(renderFileName.c_str()), 2, 0,
+                    144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }
     case GlobalMenus::quit_connfirmation_menu: {
+      text_drawText(renderer, const_cast<char *>("Unsaved changes"), 2,
+                    (windowWidth - (15 * 16)) / 2, windowHeight / 2 - 16,
+                    visual_redText, 0, fontTileCountW);
       text_drawText(renderer,
-                      const_cast<char *>("Unsaved changes"), 2,
-                      (windowWidth-(15*16))/2, windowHeight/2-16, visual_redText, 0, fontTileCountW);  
-      text_drawText(renderer,
-                      const_cast<char *>("Press ESC again to quit anyway"), 2,
-                      (windowWidth-(30*16))/2, windowHeight/2, visual_whiteText, 0, fontTileCountW);  
-      text_drawText(renderer,
-                      const_cast<char *>("Press F7 to go to file menu"), 2,
-                      (windowWidth-(27*16))/2, windowHeight/2+16, visual_whiteText, 0, fontTileCountW);  
+                    const_cast<char *>("Press ESC again to quit anyway"), 2,
+                    (windowWidth - (30 * 16)) / 2, windowHeight / 2,
+                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, const_cast<char *>("Press F7 to go to file menu"),
+                    2, (windowWidth - (27 * 16)) / 2, windowHeight / 2 + 16,
+                    visual_whiteText, 0, fontTileCountW);
     }
     }
   }
