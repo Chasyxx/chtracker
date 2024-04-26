@@ -349,7 +349,7 @@ clean:
 	\$(CLEAN) ../chtracker.exe
 
 ../chtracker: timer.oxx order.oxx channel.oxx visual.o chtracker.oxx
-	\$(CXX) \$(LIBS) -o \$@ \$^
+	\$(CXX) -o \$@ \$^ \$(LIBS)
 
 visual.o: visual/font.i visual/visual.c
 	@\$(MAKE) -C visual
