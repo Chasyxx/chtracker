@@ -140,14 +140,14 @@ void barrierVertical(SDL_Renderer *r, unsigned int x, int windowHeight) {
 void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWidth,
                     int& lastWindowHeight, const GlobalMenus currentMenu,
                     const bool isAudioPlaying, const Sint16 *waveformDisplay,
-                    const bool hasUnsavedChanges, CursorPos& cursorPosition,
-                    orderIndexStorage& indexes, unsigned short audio_pattern,
-                    unsigned char audio_row, orderStorage &orders,
-                    unsigned short patternMenu_orderIndex, char patternMenu_viewMode,
-                    instrumentStorage& instrumentSystem, unsigned short audio_tempo,
-                    unsigned short paternLength, char* fileMenu_errorText,
-                    std::string& fileMenu_directoryPath, std::string saveFileMenu_fileName,
-                    std::string renderMenu_fileName) {
+                    const bool hasUnsavedChanges, const CursorPos& cursorPosition,
+                    orderIndexStorage& indexes, const unsigned short currentPattern,
+                    const unsigned char currentRow, orderStorage &orders,
+                    const unsigned short currentlyViewedOrder, const char currentViewMode,
+                    instrumentStorage& instruments, const unsigned short tempo,
+                    const unsigned short paternLength, const char* errorText,
+                    const std::string& fileMenuDirectory, const std::string saveFileName,
+                    const std::string renderFileName) {
   long millis = SDL_GetTicks64();
   int windowWidth, windowHeight;
   SDL_GetWindowSize(window, &windowWidth, &windowHeight);
@@ -427,10 +427,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
       text_drawText(renderer, const_cast<char *>("Order"), 2, 0, 16,
                     visual_whiteText, 0, 5);
       orderIndexRow *orderRow =
-          indexes.at(isAudioPlaying ? audio_pattern : patternMenu_orderIndex);
+          indexes.at(isAudioPlaying ? currentPattern : currentlyViewedOrder);
       char letters[4];
-      int cursorY = isAudioPlaying ? audio_row : cursorPosition.y;
-      hex4(isAudioPlaying ? audio_pattern : patternMenu_orderIndex, letters);
+      int cursorY = isAudioPlaying ? currentRow : cursorPosition.y;
+      hex4(isAudioPlaying ? currentPattern : currentlyViewedOrder, letters);
       for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
            hexNumberIndex++)
         text_drawBigChar(renderer, indexes_charToIdx(letters[hexNumberIndex]),
@@ -439,16 +439,16 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
       unsigned char selectedInstrument =
           cursorPosition.x /
           patternMenu_instrumentVariableCount[static_cast<size_t>(
-              patternMenu_viewMode)];
+              currentViewMode)];
       unsigned char selectedVariable =
           cursorPosition.x %
           patternMenu_instrumentVariableCount[static_cast<size_t>(
-              patternMenu_viewMode)];
+              currentViewMode)];
 
       short instrumentScreenCount =
           fontTileCountW /
           patternMenu_instrumentCollumnWidth[static_cast<size_t>(
-              patternMenu_viewMode)];
+              currentViewMode)];
       unsigned char firstInstrument =
           std::max(0, static_cast<short>(selectedInstrument) -
                           ((instrumentScreenCount - 1) / 2));
@@ -491,7 +491,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           bool rowSeleted =
               selectedInstrument == instrumentIndex && rowIndex == cursorY;
 
-          if (patternMenu_viewMode >= 1 && currentCollumn == 0)
+          if (currentViewMode >= 1 && currentCollumn == 0)
             text_drawBigChar(renderer, indexes_charToIdx('\x1c'), 2, 16 * 3, y,
                              visual_greyText, 0);
 
@@ -506,20 +506,20 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           }
           if (currentRow == 0) {
             if (patternMenu_instrumentCollumnWidth[static_cast<size_t>(
-                    patternMenu_viewMode)] >= 13) {
+                    currentViewMode)] >= 13) {
               text_drawText(
                   renderer,
-                  getTypeName(instrumentSystem.at(instrumentIndex)->get_type(),
+                  getTypeName(instruments.at(instrumentIndex)->get_type(),
                               false),
                   2, 16 * (7 + localCurrentCollumn), 64, visual_whiteText,
                   instrumentIndex == selectedInstrument ||
                       (isAudioPlaying && cursorY == rowIndex),
                   10);
             } else if (patternMenu_instrumentCollumnWidth[static_cast<size_t>(
-                           patternMenu_viewMode)] >= 5) {
+                           currentViewMode)] >= 5) {
               text_drawText(
                   renderer,
-                  getTypeName(instrumentSystem.at(instrumentIndex)->get_type(),
+                  getTypeName(instruments.at(instrumentIndex)->get_type(),
                               true),
                   2, 16 * (7 + localCurrentCollumn), 64, visual_whiteText,
                   instrumentIndex == selectedInstrument ||
@@ -553,7 +553,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                              (rowSeleted && selectedVariable == 1) ||
                                  (isAudioPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
-            if (patternMenu_viewMode >= 1) {
+            if (currentViewMode >= 1) {
               hex2(r->volume, letters[0], letters[1]);
               text_drawBigChar(renderer, indexes_charToIdx(letters[0]), 2,
                                16 * (4 + localCurrentCollumn), y,
@@ -581,7 +581,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                              (rowSeleted && selectedVariable == 1) ||
                                  (isAudioPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
-            if (patternMenu_viewMode >= 1) {
+            if (currentViewMode >= 1) {
               text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                                16 * (4 + localCurrentCollumn), y,
                                visual_greenText,
@@ -608,7 +608,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                              (rowSeleted && selectedVariable == 1) ||
                                  (isAudioPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
-            if (patternMenu_viewMode >= 1) {
+            if (currentViewMode >= 1) {
               text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                                16 * (4 + localCurrentCollumn), y,
                                visual_greenText,
@@ -625,7 +625,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           }
           }
 
-          for (unsigned char i = 0; i < std::max(patternMenu_viewMode - 1, 0) &&
+          for (unsigned char i = 0; i < std::max(currentViewMode - 1, 0) &&
                                     i < r->effects.size();
                i++) {
             char effect_number = '?';
@@ -685,7 +685,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                       (isAudioPlaying && cursorY == rowIndex));
             localCurrentCollumn += 6;
           }
-          if (patternMenu_viewMode >= 1)
+          if (currentViewMode >= 1)
             text_drawBigChar(renderer, indexes_charToIdx('\x1c'), 2,
                              16 * (3 + localCurrentCollumn), y, visual_greyText,
                              0);
@@ -693,7 +693,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
         }
         currentCollumn +=
             patternMenu_instrumentCollumnWidth[static_cast<size_t>(
-                patternMenu_viewMode)];
+                currentViewMode)];
       }
       break;
     }
@@ -701,7 +701,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
       text_drawText(renderer, const_cast<char *>("Instruments: "), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       unsigned char orderTableCount = orders.tableCount();
-      unsigned char instrumentCount = instrumentSystem.inst_count();
+      unsigned char instrumentCount = instruments.inst_count();
       unsigned char orderIndexCount =
           indexes.instCount(SDL_max(orderTableCount, instrumentCount));
       unsigned char instCount =
@@ -712,8 +712,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
           std::cerr << "Corrected an instrument length issue!" << std::endl;
           while (orders.tableCount() < instCount)
             orders.at(orders.addTable())->add_order();
-          while (instrumentSystem.inst_count() < instCount)
-            instrumentSystem.add_inst(audioChannelType::null);
+          while (instruments.inst_count() < instCount)
+            instruments.add_inst(audioChannelType::null);
           while (indexes.instCount(instCount) < instCount)
             indexes.addInst();
         }
@@ -744,7 +744,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
         text_drawBigChar(renderer, indexes_charToIdx(letter2), 2, 16, y,
                          visual_whiteText, i == cursorPosition.y);
         text_drawText(
-            renderer, getTypeName(instrumentSystem.at(i)->get_type(), false), 2, 48,
+            renderer, getTypeName(instruments.at(i)->get_type(), false), 2, 48,
             y, visual_whiteText, i == cursorPosition.y, fontTileCountW);
         currentRow++;
       }
@@ -817,7 +817,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                       fontTileCountW);
         text_drawText(
             renderer,
-            getTypeName(instrumentSystem.at(cursorPosition.x)->get_type(), false), 2,
+            getTypeName(instruments.at(cursorPosition.x)->get_type(), false), 2,
             48, ceiling + 48, visual_whiteText, 0, fontTileCountW);
       }
       break;
@@ -832,7 +832,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
       text_drawText(renderer, const_cast<char *>("Rows per order"), 2, 0, 80,
                     visual_whiteText, cursorPosition.y == 1, fontTileCountW);
       char numbers[6];
-      visual_numberToString(numbers, audio_tempo);
+      visual_numberToString(numbers, tempo);
       text_drawText(renderer, numbers, 2, 256, 64, visual_whiteText,
                     cursorPosition.y == 0, fontTileCountW);
       visual_numberToString(numbers, paternLength);
@@ -841,12 +841,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
       break;
     }
     case GlobalMenus::file_menu: {
-      if (fileMenu_errorText[0] == 0) {
+      if (errorText[0] == 0) {
         text_drawText(renderer,
                       const_cast<char *>("Welcome to the FILE PICKER"), 2, 0,
                       16, visual_whiteText, 0, fontTileCountW);
       } else {
-        text_drawText(renderer, fileMenu_errorText, 2, 0, 16, visual_redText, 0,
+        text_drawText(renderer, const_cast<char*>(errorText), 2, 0, 16, visual_redText, 0,
                       fontTileCountW);
       }
       barrier(renderer, 32, windowWidth);
@@ -860,18 +860,18 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                     0, 96, visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer,
                     const_cast<char *>(
-                        (fileMenu_directoryPath + PATH_SEPERATOR_S).c_str()),
+                        (fileMenuDirectory + PATH_SEPERATOR_S).c_str()),
                     2, 0, 112, visual_whiteText, 0, INT_MAX);
       unsigned short y = 128;
       int i = 0;
       int initialEntry = std::max(0, static_cast<int>(cursorPosition.y) -
                                          static_cast<int>(fontTileCountH / 2));
       try {
-        if (std::filesystem::exists(fileMenu_directoryPath) &&
-            std::filesystem::is_directory(fileMenu_directoryPath)) {
+        if (std::filesystem::exists(fileMenuDirectory) &&
+            std::filesystem::is_directory(fileMenuDirectory)) {
           // Iterate through each file in the directory
           for (const auto &entry :
-               std::filesystem::directory_iterator(fileMenu_directoryPath)) {
+               std::filesystem::directory_iterator(fileMenuDirectory)) {
             if (entry.path().filename().string()[0] == '.')
               continue;
             if (i >= initialEntry) {
@@ -889,11 +889,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
               break;
           }
         } else {
-          fileMenu_errorText =
+          errorText =
               const_cast<char *>("Directory not found or invalid.");
         }
       } catch (std::filesystem::filesystem_error &error) {
-        fileMenu_errorText =
+        errorText =
             const_cast<char *>("Filesystem error reading directory");
       }
       if (i >= initialEntry && y < windowHeight)
@@ -907,7 +907,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer,
                     const_cast<char *>(
-                        (fileMenu_directoryPath + PATH_SEPERATOR_S).c_str()),
+                        (fileMenuDirectory + PATH_SEPERATOR_S).c_str()),
                     2, 160, 16, visual_whiteText, 0, fontTileCountW - 10);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
@@ -915,7 +915,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                       0, windowHeight-16, visual_redText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Type a filename:"), 2, 0, 128,
                     visual_whiteText, 0, fontTileCountW - 10);
-      text_drawText(renderer, const_cast<char *>(saveFileMenu_fileName.c_str()),
+      text_drawText(renderer, const_cast<char *>(saveFileName.c_str()),
                     2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }
@@ -924,7 +924,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer,
                     const_cast<char *>(
-                        (fileMenu_directoryPath + PATH_SEPERATOR_S).c_str()),
+                        (fileMenuDirectory + PATH_SEPERATOR_S).c_str()),
                     2, 16*13, 16, visual_whiteText, 0, fontTileCountW - 13);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
@@ -935,7 +935,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window, int& lastWindowWid
                     0, windowHeight-16, visual_yellowText, 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Type a filename:"), 2, 0, 128,
                     visual_whiteText, 0, fontTileCountW - 10);
-      text_drawText(renderer, const_cast<char *>(renderMenu_fileName.c_str()),
+      text_drawText(renderer, const_cast<char *>(renderFileName.c_str()),
                     2, 0, 144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }
