@@ -199,7 +199,7 @@ if [ $AUTOADD_SDL -eq 1 ]; then
 					warning "Path $path does not have SDL files"
 				fi
 			else
-				error "SDL2 include path $path does not exist"
+				warning "SDL2 include path $path does not exist"
 			fi
 		done
 		for path in $SDL2_LIBS_PATHS; do
@@ -223,7 +223,7 @@ if [ $AUTOADD_SDL -eq 1 ]; then
 					fi
 				fi
 			else
-				error "SDL2 library path $path does not exist"
+				warning "SDL2 library path $path does not exist (Linking could fail)"
 			fi
 		done
 	fi
