@@ -148,7 +148,7 @@ bool /****/ global_unsavedChanges = false;
  *                           *
  *****************************/
 
-void onOpenMenu() {
+void onOpenMenuMain() {
   cursorPosition = {
       .x = 0, .y = 0, .subMenu = 0, .selection = {.x = 0, .y = 0}};
 }
@@ -829,9 +829,6 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
 }
 
 int main(int argc, char *argv[]) {
-  (void)(argc);
-  (void)(argv); // These are only here to avoid "undefined reference to
-                // SDL_main" errors
 
 #if defined(_POSIX)
   if (std::strcmp(std::getenv("USER"), "root") == 0) {
@@ -878,6 +875,17 @@ int main(int argc, char *argv[]) {
     quit(1);
   }
   init(/*renderer, */ window);
+  if(argc>1) {
+    path loadFilePath = argv[1];
+    if(loadFile(loadFilePath)) {
+      global_currentMenu = GlobalMenus::file_menu;
+      onOpenMenuMain();
+      if(fileMenu_errorText[0] == 0) fileMenu_errorText = const_cast<char*>("Couldn't auto-load file");
+    } else {
+      global_currentMenu = GlobalMenus::pattern_menu;
+      onOpenMenuMain();
+    }
+  }
   sdlLoop(renderer, window);
   quit(0);
   return 0;
