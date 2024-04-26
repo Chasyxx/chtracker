@@ -61,7 +61,7 @@ int renderTo(std::filesystem::path);
 
 void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
                   CursorPos &cursorPosition, std::string &saveMenuFilename,
-                  std::string &renderMenuFilename, std::string &fileMenuPath,
+                  std::string &renderMenuFilename, std::filesystem::path &fileMenuPath,
                   char *fileMenuError, bool &hasUnsavedChanges,
                   const unsigned int limitX, const unsigned int limitY,
                   bool &freezeAudio, bool &audioIsFrozen,
@@ -92,7 +92,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
         renderMenuFilename.pop_back();
     }
     if (code == SDLK_RETURN || code == SDLK_RETURN2) {
-      std::filesystem::path path(fileMenuPath + PATH_SEPERATOR_S +
+      std::filesystem::path path(fileMenuPath.string() + PATH_SEPERATOR_S +
                                  (currentMenu == GlobalMenus::render_menu
                                       ? renderMenuFilename
                                       : saveMenuFilename));
@@ -240,12 +240,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
             if (i++ == static_cast<int>(cursorPosition.y)) {
               found = true;
               if (entry.is_directory()) {
-                std::string newPath;
-                if (fileMenuPath[fileMenuPath.length() - 1] == PATH_SEPERATOR)
-                  newPath = fileMenuPath + entry.path().filename().string();
-                else
-                  newPath = fileMenuPath + PATH_SEPERATOR_S +
-                            entry.path().filename().string();
+                std::filesystem::path newPath = fileMenuPath / entry.path().filename();
                 if (std::filesystem::exists(fileMenuPath)) {
                   fileMenuPath = newPath;
                 }

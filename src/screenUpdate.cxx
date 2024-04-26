@@ -207,9 +207,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                   const unsigned short currentlyViewedOrder,
                   const char currentViewMode, instrumentStorage &instruments,
                   const unsigned short tempo, const unsigned short paternLength,
-                  const char *errorText, const std::string &fileMenuDirectory,
+                  const char *errorText, const std::filesystem::path &fileMenuDirectory,
                   const std::string saveFileName,
-                  const std::string renderFileName) {
+                  const std::string renderFileName, const std::filesystem::path& docPath) {
   long millis = SDL_GetTicks64();
   int windowWidth, windowHeight;
   SDL_GetWindowSize(window, &windowWidth, &windowHeight);
@@ -228,11 +228,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
   // int x = millis%windowWidth;
   // int y = (millis/windowWidth)%windowHeight;
 
-/*****************************************************
- *                                                   *
- *              TILED BACKGROUND SYSTEM              *
- *                                                   *
- *****************************************************/
+  /*****************************************************
+   *                                                   *
+   *              TILED BACKGROUND SYSTEM              *
+   *                                                   *
+   *****************************************************/
 
   for (unsigned int i = 0;
        i < windowHorizontalTileCount * windowVerticalTileCount; i++) {
@@ -253,11 +253,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                      0);
   }
 
-/*****************************************************
- *                                                   *
- *                 MAIN MENU SCREEN                  *
- *                                                   *
- *****************************************************/
+  /*****************************************************
+   *                                                   *
+   *                 MAIN MENU SCREEN                  *
+   *                                                   *
+   *****************************************************/
   if (currentMenu == GlobalMenus::main_menu) {
     int i = 0;
     const char *str = "chTRACKER";
@@ -302,11 +302,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
           1, 0, 0, visual_whiteText, 0, fontTileCountW * 2);
     }
   } else {
-    /****************************************************
-    *                                                   *
-    *                  GENERAL DISPLAY                  *
-    *                                                   *
-    ****************************************************/
+    /*****************************************************
+     *                                                   *
+     *                  GENERAL DISPLAY                  *
+     *                                                   *
+     ****************************************************/
     if (isAudioPlaying) {
       unsigned int lastY = 0;
       unsigned int lastX = 0;
@@ -383,16 +383,16 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-   /*****************************************************
-    *                                                   *
-    *                     HELP MENU                     *
-    *                                                   *
-    *****************************************************/
+      /*****************************************************
+       *                                                   *
+       *                     HELP MENU                     *
+       *                                                   *
+       *****************************************************/
 
     case GlobalMenus::help_menu: {
       // text_drawText(renderer, const_cast<char *>("Insert help here"), 2, 0,
       // 16, visual_whiteText, 1, fontTileCountW);
-      std::ifstream helpFile("./doc/help.txt", std::ios::in);
+      std::ifstream helpFile(docPath / "help.txt", std::ios::in);
 #ifdef _POSIX
       if (!helpFile.is_open()) {
         helpFile.open("/usr/share/doc/chtracker/help.txt");
@@ -435,11 +435,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-   /*****************************************************
-    *                                                   *
-    *                    ORDER MENU                     *
-    *                                                   *
-    *****************************************************/
+      /*****************************************************
+       *                                                   *
+       *                    ORDER MENU                     *
+       *                                                   *
+       *****************************************************/
 
     case GlobalMenus::order_menu: {
       text_drawText(renderer, const_cast<char *>("Order rows: "), 2, 0, 16,
@@ -517,11 +517,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-   /*****************************************************
-    *                                                   *
-    *                   PATTERN MENU                    *
-    *                                                   *
-    *****************************************************/
+      /*****************************************************
+       *                                                   *
+       *                   PATTERN MENU                    *
+       *                                                   *
+       *****************************************************/
 
     case GlobalMenus::pattern_menu: {
       barrier(renderer, 48, windowWidth);
@@ -802,11 +802,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-   /*****************************************************
-    *                                                   *
-    *                  INSTRUMENT MENU                  *
-    *                                                   *
-    *****************************************************/
+      /*****************************************************
+       *                                                   *
+       *                  INSTRUMENT MENU                  *
+       *                                                   *
+       *****************************************************/
 
     case GlobalMenus::instrument_menu: {
       text_drawText(renderer, const_cast<char *>("Instruments: "), 2, 0, 16,
@@ -863,11 +863,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-   /*****************************************************
-    *                                                   *
-    *               ORDER MANAGEMENT MENU               *
-    *                                                   *
-    *****************************************************/
+      /*****************************************************
+       *                                                   *
+       *               ORDER MANAGEMENT MENU               *
+       *                                                   *
+       *****************************************************/
 
     case GlobalMenus::order_management_menu: {
       unsigned char startingRow = static_cast<unsigned char>(
@@ -941,11 +941,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-   /*****************************************************
-    *                                                   *
-    *               OPTIONS/SETTINGS MENU               *
-    *                                                   *
-    *****************************************************/
+      /*****************************************************
+       *                                                   *
+       *               OPTIONS/SETTINGS MENU               *
+       *                                                   *
+       *****************************************************/
 
     case GlobalMenus::options_menu: {
       text_drawText(renderer, const_cast<char *>("W to increase"), 2, 0, 16,
@@ -966,10 +966,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
     /****************************************************
-    *                                                   *
-    *                     FILE MENU                     *
-    *                                                   *
-    ****************************************************/
+     *                                                   *
+     *                     FILE MENU                     *
+     *                                                   *
+     ****************************************************/
     case GlobalMenus::file_menu: {
       if (errorText[0] == 0) {
         text_drawText(renderer,
@@ -990,7 +990,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     0, 96, visual_whiteText, 0, fontTileCountW);
       text_drawText(
           renderer,
-          const_cast<char *>((fileMenuDirectory + PATH_SEPERATOR_S).c_str()), 2,
+          const_cast<char *>((fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()), 2,
           0, 112, visual_whiteText, 0, INT_MAX);
       unsigned short y = 128;
       int i = 0;
@@ -1031,16 +1031,16 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-    /************
-    * Save menu *
-    ************/
+      /************
+       * Save menu *
+       ************/
 
     case GlobalMenus::save_file_menu: {
       text_drawText(renderer, const_cast<char *>("Saving to"), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(
           renderer,
-          const_cast<char *>((fileMenuDirectory + PATH_SEPERATOR_S).c_str()), 2,
+          const_cast<char *>((fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()), 2,
           160, 16, visual_whiteText, 0, fontTileCountW - 10);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
@@ -1053,16 +1053,16 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-    /**************
-    * Render menu *
-    **************/
+      /**************
+       * Render menu *
+       **************/
 
     case GlobalMenus::render_menu: {
       text_drawText(renderer, const_cast<char *>("Rendering to"), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(
           renderer,
-          const_cast<char *>((fileMenuDirectory + PATH_SEPERATOR_S).c_str()), 2,
+          const_cast<char *>((fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()), 2,
           16 * 13, 16, visual_whiteText, 0, fontTileCountW - 13);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
@@ -1078,10 +1078,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       break;
     }
 
-    /*************************
-    * "Unsaved changes" menu *
-    *************************/
-    
+      /*************************
+       * "Unsaved changes" menu *
+       *************************/
+
     case GlobalMenus::quit_connfirmation_menu: {
       text_drawText(renderer, const_cast<char *>("Unsaved changes"), 2,
                     (windowWidth - (15 * 16)) / 2, windowHeight / 2 - 16,

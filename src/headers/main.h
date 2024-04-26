@@ -29,12 +29,12 @@
 #define MAIN_H_CONST const
 #endif
 
-/**************************************
- *                                    *
- *            MACRO SECTION           *
- *   All #define DIRECTIVES GO HERE   *
- *                                    *
- **************************************/
+/*************************************
+*                                    *
+*            MACRO SECTION           *
+*   All #define DIRECTIVES GO HERE   *
+*                                    *
+*************************************/
 
 #define AUDIO_SAMPLE_COUNT 512
 
@@ -51,12 +51,12 @@
 #define HOPEFULLY_POSIX
 #endif
 
-/***********************************************
- *                                             *
- *           ENUM AND SCRUCT SECTION           *
- *   All enum AND struct DEFINITIONS GO HERE   *
- *                                             *
- ***********************************************/
+/**********************************************
+*                                             *
+*           ENUM AND SCRUCT SECTION           *
+*   All enum AND struct DEFINITIONS GO HERE   *
+*                                             *
+**********************************************/
 
 #ifdef __cplusplus
 
@@ -89,12 +89,12 @@ struct CursorPos {
 
 #endif
 
-/*************************************
- *                                   *
- *           CONST SECTION           *
- *   All MAIN_H_CONST VARIABLES GO HERE   *
- *                                   *
- *************************************/
+/*****************************************
+*                                        *
+*             CONST SECTION              *
+*   All MAIN_H_CONST VARIABLES GO HERE   *
+*                                        *
+*****************************************/
 
 MAIN_H_CONST unsigned char global_majorVersion /**/ = 0x00;
 MAIN_H_CONST unsigned char global_minorVersion /**/ = 0x03;

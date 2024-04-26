@@ -69,6 +69,16 @@
 #define TILE_SIZE 96
 #define TILE_SIZE_F 96.0
 
+/**********************************
+ *                                *
+ *          USING SECTION         *
+ *   All using KEYWORDS GO HERE   *
+ *                                *
+ **********************************/
+
+using std::filesystem::path;
+using std::string;
+
 /************************************
  *                                  *
  *     GLOBAL VARIABLES SECTION     *
@@ -120,14 +130,16 @@ Sint16 /**********/ waveformDisplay[AUDIO_SAMPLE_COUNT];
  ****************/
 
 #if defined(_WIN32)
-std::string /**/ fileMenu_directoryPath = "C:\\";
+path /**/ fileMenu_directoryPath = "C:\\";
 #else
-std::string /**/ fileMenu_directoryPath = "/";
+path /****/ fileMenu_directoryPath = "/";
 #endif
-char * /*******/ fileMenu_errorText = const_cast<char *>("");
-std::string /**/ saveFileMenu_fileName = "file.cht";
-std::string /**/ renderMenu_fileName = "render.wav";
-bool /*********/ global_unsavedChanges = false;
+char * /**/ fileMenu_errorText = const_cast<char *>("");
+string /**/ saveFileMenu_fileName = "file.cht";
+string /**/ renderMenu_fileName = "render.wav";
+path /****/ executableAbolutePath = "";
+path /****/ documentationDirectory = "./doc";
+bool /****/ global_unsavedChanges = false;
 
 /*****************************
  *                           *
@@ -202,7 +214,7 @@ void audioTickTimers() {
  * File functions *
  ******************/
 
-int saveFile(std::filesystem::path path) {
+int saveFile(path path) {
   std::ofstream file(path, std::ios::out | std::ios::binary);
   if (!file || !file.is_open())
     return 1;
@@ -315,7 +327,7 @@ int saveFile(std::filesystem::path path) {
   return 0;
 }
 
-int loadFile(std::filesystem::path filePath) {
+int loadFile(path filePath) {
   if (timerSystem.hasTimer("row"))
     timerSystem.removeTimer("row");
   if (timerSystem.hasTimer("effect"))
@@ -453,7 +465,7 @@ int loadFile(std::filesystem::path filePath) {
   return 0;
 }
 
-int renderTo(std::filesystem::path path) {
+int renderTo(path path) {
   if (orders.tableCount() < 1)
     return 1;
   std::ofstream file(path, std::ios::out | std::ios::binary);
@@ -648,7 +660,7 @@ void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
     if (str == nullptr) {
       fileMenu_directoryPath = "/";
     } else {
-      fileMenu_directoryPath = std::string("/home/") + str + "/";
+      fileMenu_directoryPath = string("/home/") + str + "/";
     }
   } else {
     fileMenu_directoryPath = str;
@@ -803,7 +815,7 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
                  audio_row, orders, patternMenu_orderIndex,
                  patternMenu_viewMode, instrumentSystem, audio_tempo,
                  patternLength, fileMenu_errorText, fileMenu_directoryPath,
-                 saveFileMenu_fileName, renderMenu_fileName);
+                 saveFileMenu_fileName, renderMenu_fileName, documentationDirectory);
     SDL_RenderPresent(renderer);
     if (quit) {
       if (global_unsavedChanges &&
@@ -820,12 +832,31 @@ int main(int argc, char *argv[]) {
   (void)(argc);
   (void)(argv); // These are only here to avoid "undefined reference to
                 // SDL_main" errors
+
 #if defined(_POSIX)
   if (std::strcmp(std::getenv("USER"), "root") == 0) {
     std::cerr << "Please don't open this program as root" << std::endl;
     quit(1);
   }
 #endif
+#if defined(__linux__)
+  {
+    int protector = 0;
+    executableAbolutePath = std::filesystem::read_symlink("/proc/self/exe");
+    while(std::filesystem::is_symlink(executableAbolutePath)) {
+      executableAbolutePath = std::filesystem::read_symlink(executableAbolutePath);
+      protector++;
+      if(protector>=64) {std::cerr << "Why so many symlinks!?" << std::endl; break;}
+    }
+  }
+  documentationDirectory = executableAbolutePath.parent_path() / "doc";
+#elif defined(_WIN32)
+  {
+    executableAbolutePath = _pgmptr;
+  }
+  documentationDirectory = executableAbolutePath.parent_path() / "doc";
+#endif
+  std::cout << documentationDirectory << std::endl;
   if (SDL_InitSubSystem(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) <
       0) {
     std::cerr << "Failed to start SDL! " << SDL_GetError() << std::endl;
