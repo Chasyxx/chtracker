@@ -18,6 +18,8 @@
   Chase Taylor @ creset200@gmail.com
 */
 
+#define IN_CHTRACKER_CONTEXT
+
 /***********************************
  *         INCLUDE SECTION         *
  * All #include directives go here *
@@ -64,19 +66,6 @@
 
 #define TILE_SIZE 96
 #define TILE_SIZE_F 96.0
-
-#if defined(_WIN32)
-#define PATH_SEPERATOR_S "\\"
-#define PATH_SEPERATOR '\\'
-#elif defined(__linux__) || defined(__APPLE__)
-#define PATH_SEPERATOR_S "/"
-#define PATH_SEPERATOR '/'
-#define _POSIX
-#else
-#define PATH_SEPERATOR_S "/"
-#define PATH_SEPERATOR '/'
-#define HOPEFULLY_POSIX
-#endif
 
 /************************************
  *                                  *
@@ -1401,8 +1390,8 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
 }
 
 /*************************************************************
- * The giant function that does all of the heavy GUI lifting
- * (Which is now in another file) *
+ * The giant function that does all of the heavy GUI lifting *
+ *              (Which is now in another file)               *
  *************************************************************/
 
 #include "../screenUpdate.cxx"
@@ -1480,3 +1469,5 @@ int main(int argc, char *argv[]) {
   quit(0);
   return 0;
 }
+
+#undef IN_CHTRACKER_CONTEXT

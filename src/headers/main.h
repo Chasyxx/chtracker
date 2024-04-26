@@ -38,6 +38,19 @@
 
 #define AUDIO_SAMPLE_COUNT 512
 
+#if defined(_WIN32)
+#define PATH_SEPERATOR_S "\\"
+#define PATH_SEPERATOR '\\'
+#elif defined(__linux__) || defined(__APPLE__)
+#define PATH_SEPERATOR_S "/"
+#define PATH_SEPERATOR '/'
+#define _POSIX
+#else
+#define PATH_SEPERATOR_S "/"
+#define PATH_SEPERATOR '/'
+#define HOPEFULLY_POSIX
+#endif
+
 /***********************************************
  *                                             *
  *           ENUM AND SCRUCT SECTION           *
