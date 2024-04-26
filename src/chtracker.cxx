@@ -20,10 +20,12 @@
 
 #define IN_CHTRACKER_CONTEXT
 
-/***********************************
- *         INCLUDE SECTION         *
- * All #include directives go here *
- ***********************************/
+/***************************************
+ *                                     *
+ *           INCLUDE SECTION           *
+ *   All #include directives go here   *
+ *                                     *
+ ***************************************/
 
 #include <SDL2/SDL.h>
 
