@@ -84,7 +84,7 @@ unsigned short /**/ audio_pattern = 0;
 bool /************/ audio_isPlaying = false;
 bool /************/ audio_freeze = false;
 bool /************/ audio_isFrozen = true;
-unsigned short /**/ audio_tenpo = 960;
+unsigned short /**/ audio_tempo = 960;
 
 /**************
  * Music data *
@@ -175,7 +175,7 @@ void audioTickTimers() {
         audio_pattern = 0;
       }
     }
-    timerSystem.resetTimer("row", 48000 * 60 / audio_tenpo);
+    timerSystem.resetTimer("row", 48000 * 60 / audio_tempo);
     for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
       unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
       row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
@@ -186,13 +186,13 @@ void audioTickTimers() {
     for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
       instrumentSystem.at(i)->applyFx();
     }
-    timerSystem.resetTimer("effect", 375 * 960 / audio_tenpo);
+    timerSystem.resetTimer("effect", 375 * 960 / audio_tempo);
   }
   if (timerSystem.isComplete("arpeggio")) {
     for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
       instrumentSystem.at(i)->applyArpeggio();
     }
-    timerSystem.resetTimer("arpeggio", 1500 * 960 / audio_tenpo);
+    timerSystem.resetTimer("arpeggio", 1500 * 960 / audio_tempo);
   }
 }
 
@@ -214,8 +214,8 @@ int saveFile(std::filesystem::path path) {
   buffer[11] = global_patchVersion;
   buffer[12] = global_prereleaseVersion;
 
-  buffer[13] = static_cast<unsigned char>(audio_tenpo >> 8);
-  buffer[14] = static_cast<unsigned char>(audio_tenpo & 255);
+  buffer[13] = static_cast<unsigned char>(audio_tempo >> 8);
+  buffer[14] = static_cast<unsigned char>(audio_tempo & 255);
 
   buffer[15] = static_cast<unsigned char>(patternLength >> 8);
   buffer[16] = static_cast<unsigned char>(patternLength & 255);
@@ -445,7 +445,7 @@ int loadFile(std::filesystem::path filePath) {
     delete[] buffer;
   }
 
-  audio_tenpo = local_rowsPerMinute;
+  audio_tempo = local_rowsPerMinute;
   patternLength = local_rowsPerPattern;
   file.close();
   return 0;
@@ -461,7 +461,7 @@ int renderTo(std::filesystem::path path) {
   size_t songLength = 48000 * 120;
   songLength *= patternLength;
   songLength *= indexes.rowCount();
-  songLength /= audio_tenpo;
+  songLength /= audio_tempo;
   // Make a buffer whose length is the file size
   size_t fileSize = (songLength * 2) + 44;
   unsigned char *buffer = new unsigned char[fileSize];
@@ -515,9 +515,9 @@ int renderTo(std::filesystem::path path) {
     timerSystem.removeTimer("effect");
   if (timerSystem.hasTimer("arpeggio"))
     timerSystem.removeTimer("arpeggio");
-  timerSystem.addTimer("row", 48000 * 60 / audio_tenpo);
-  timerSystem.addTimer("effect", 375 * 960 / audio_tenpo);
-  timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tenpo);
+  timerSystem.addTimer("row", 48000 * 60 / audio_tempo);
+  timerSystem.addTimer("effect", 375 * 960 / audio_tempo);
+  timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tempo);
   row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
   for (char i = 0; i < 4; i++)
     dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
@@ -585,11 +585,11 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
 
   if (!audio_freeze && audio_isPlaying && orders.tableCount() > 0) {
     if (!timerSystem.hasTimer("row"))
-      timerSystem.addTimer("row", 48000 * 60 / audio_tenpo);
+      timerSystem.addTimer("row", 48000 * 60 / audio_tempo);
     if (!timerSystem.hasTimer("effect"))
-      timerSystem.addTimer("effect", 375 * 960 / audio_tenpo);
+      timerSystem.addTimer("effect", 375 * 960 / audio_tempo);
     if (!timerSystem.hasTimer("arpeggio"))
-      timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tenpo);
+      timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tempo);
 
     for (unsigned int audioIdx = 0;
          audioIdx < static_cast<unsigned int>(samples); audioIdx++) {
@@ -1314,11 +1314,11 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
-                  audio_tenpo < 65525) {
-                audio_tenpo += 10;
+                  audio_tempo < 65525) {
+                audio_tempo += 10;
                 global_unsavedChanges = true;
-              } else if (audio_tenpo < 65534) {
-                audio_tenpo++;
+              } else if (audio_tempo < 65534) {
+                audio_tempo++;
                 global_unsavedChanges = true;
               }
             } else {
@@ -1343,11 +1343,11 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
-                  audio_tenpo > 40) {
-                audio_tenpo -= 10;
+                  audio_tempo > 40) {
+                audio_tempo -= 10;
                 global_unsavedChanges = true;
-              } else if (audio_tenpo > 30) {
-                audio_tenpo--;
+              } else if (audio_tempo > 30) {
+                audio_tempo--;
                 global_unsavedChanges = true;
               }
             } else {
@@ -1411,7 +1411,7 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
                  global_currentMenu, audio_isPlaying, waveformDisplay,
                  global_unsavedChanges, cursorPosition, indexes, audio_pattern,
                  audio_row, orders, patternMenu_orderIndex,
-                 patternMenu_viewMode, instrumentSystem, audio_tenpo,
+                 patternMenu_viewMode, instrumentSystem, audio_tempo,
                  patternLength, fileMenu_errorText, fileMenu_directoryPath,
                  saveFileMenu_fileName, renderMenu_fileName);screenUpdate(renderer, window, lastWindowWidth, lastWindowHeight, 
         global_currentMenu, audio_isPlaying, 
@@ -1419,7 +1419,7 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
         indexes, audio_pattern, audio_row, orders, 
         patternMenu_orderIndex, 
         patternMenu_viewMode, instrumentSystem, 
-        audio_tenpo, patternLength, fileMenu_errorText, 
+        audio_tempo, patternLength, fileMenu_errorText, 
         fileMenu_directoryPath, saveFileMenu_fileName, 
         renderMenu_fileName);
     SDL_RenderPresent(renderer);

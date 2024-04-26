@@ -17,94 +17,94 @@ int loadFile(std::filesystem::path);
 int renderTo(std::filesystem::path);
 #endif
 
-void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
-                      CursorPos &cursorPosition, std::string& saveFileMenu_fileName,
-                      std::string& renderMenu_fileName, std::string& fileMenu_directoryPath,
-                      char *fileMenu_errorText, bool &global_unsavedChanges,
-                      const unsigned int limitX, const unsigned int limitY, bool &audio_freeze,
-                      bool &audio_isFrozen, unsigned short &patternMenu_orderIndex,
-                      char &patternMenu_viewMode, bool &audio_isPlaying,
-                      instrumentStorage instrumentSystem, orderIndexStorage &indexes,
-                      orderStorage &orders, unsigned short audio_pattern,
+void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
+                      CursorPos &cursorPosition, std::string& saveMenuFilename,
+                      std::string& renderMenuFilename, std::string& fileMenuPath,
+                      char *fileMenuError, bool &hasUnsavedChanges,
+                      const unsigned int limitX, const unsigned int limitY, bool &freezeAudio,
+                      bool &audioIsFrozen, unsigned short &currentlyViewedOrder,
+                      char &viewMode, bool &playAudio,
+                      instrumentStorage &instrumentSystem, orderIndexStorage &indexes,
+                      orderStorage &orders, const unsigned short audio_pattern,
                       unsigned short &patternLength, const Uint8 *currentKeyStates,
-                      unsigned short &audio_tenpo) {
+                      unsigned short &audio_tempo) {
     SDL_Keysym ks = event->key.keysym;
     SDL_Keycode code = ks.sym;
-    if (global_currentMenu == GlobalMenus::save_file_menu ||
-        global_currentMenu == GlobalMenus::render_menu) {
+    if (currentMenu == GlobalMenus::save_file_menu ||
+        currentMenu == GlobalMenus::render_menu) {
       if (code == SDLK_ESCAPE) {
-        global_currentMenu = GlobalMenus::file_menu;
+        currentMenu = GlobalMenus::file_menu;
         onOpenMenu(cursorPosition);
       }
-      if (code == SDLK_BACKSPACE && !saveFileMenu_fileName.empty()) {
-        if (global_currentMenu == GlobalMenus::save_file_menu &&
-            !saveFileMenu_fileName.empty())
-          saveFileMenu_fileName.pop_back();
-        else if (!renderMenu_fileName.empty())
-          renderMenu_fileName.pop_back();
+      if (code == SDLK_BACKSPACE && !saveMenuFilename.empty()) {
+        if (currentMenu == GlobalMenus::save_file_menu &&
+            !saveMenuFilename.empty())
+          saveMenuFilename.pop_back();
+        else if (!renderMenuFilename.empty())
+          renderMenuFilename.pop_back();
       }
       if (code == SDLK_RETURN || code == SDLK_RETURN2) {
         std::filesystem::path path(
-            fileMenu_directoryPath + PATH_SEPERATOR_S +
-            (global_currentMenu == GlobalMenus::render_menu
-                 ? renderMenu_fileName
-                 : saveFileMenu_fileName));
+            fileMenuPath + PATH_SEPERATOR_S +
+            (currentMenu == GlobalMenus::render_menu
+                 ? renderMenuFilename
+                 : saveMenuFilename));
         try {
           if (std::filesystem::exists(path) && cursorPosition.subMenu == 0) {
             cursorPosition.subMenu = 1;
             return;
           }
-          if (global_currentMenu == GlobalMenus::save_file_menu) {
+          if (currentMenu == GlobalMenus::save_file_menu) {
             int exit_code = saveFile(path);
             if (exit_code) {
-              fileMenu_errorText =
+              fileMenuError =
                   const_cast<char *>("Refused to save the file");
-              global_currentMenu = GlobalMenus::file_menu;
+              currentMenu = GlobalMenus::file_menu;
               onOpenMenu(cursorPosition);
             } else {
-              global_currentMenu = GlobalMenus::pattern_menu;
+              currentMenu = GlobalMenus::pattern_menu;
               onOpenMenu(cursorPosition);
-              global_unsavedChanges = false;
+              hasUnsavedChanges = false;
             };
           } else {
             int exit_code = renderTo(path);
             if (exit_code) {
-              fileMenu_errorText =
+              fileMenuError =
                   const_cast<char *>("Refused to render to the file");
-              global_currentMenu = GlobalMenus::file_menu;
+              currentMenu = GlobalMenus::file_menu;
               onOpenMenu(cursorPosition);
             } else {
-              global_currentMenu = GlobalMenus::pattern_menu;
+              currentMenu = GlobalMenus::pattern_menu;
               onOpenMenu(cursorPosition);
             };
           }
         } catch (std::filesystem::filesystem_error &) {
-          fileMenu_errorText = const_cast<char *>(
+          fileMenuError = const_cast<char *>(
               "Filesystem error trying to save/render to the file");
-          global_currentMenu = GlobalMenus::file_menu;
+          currentMenu = GlobalMenus::file_menu;
           onOpenMenu(cursorPosition);
         }
       }
       return;
     }
-    if (global_currentMenu == GlobalMenus::main_menu) {
+    if (currentMenu == GlobalMenus::main_menu) {
       switch (code) {
       case SDLK_ESCAPE: {
         quit = 1;
         break;
       }
       case 'z': {
-        global_currentMenu = GlobalMenus::help_menu;
+        currentMenu = GlobalMenus::help_menu;
         break;
       }
       }
     } else {
       switch (code) {
       case SDLK_ESCAPE: {
-        if (global_currentMenu == GlobalMenus::file_menu) {
-          if (std::filesystem::path(fileMenu_directoryPath).has_parent_path()) {
-            fileMenu_directoryPath =
-                std::filesystem::path(fileMenu_directoryPath)
+        if (currentMenu == GlobalMenus::file_menu) {
+          if (std::filesystem::path(fileMenuPath).has_parent_path()) {
+            fileMenuPath =
+                std::filesystem::path(fileMenuPath)
                     .parent_path()
                     .string();
             cursorPosition.y = 0;
@@ -115,37 +115,37 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
         break;
       }
       case SDLK_F1: {
-        global_currentMenu = GlobalMenus::help_menu;
+        currentMenu = GlobalMenus::help_menu;
         onOpenMenu(cursorPosition);
         break;
       }
       case SDLK_F2: {
-        global_currentMenu = GlobalMenus::order_menu;
+        currentMenu = GlobalMenus::order_menu;
         onOpenMenu(cursorPosition);
         break;
       }
       case SDLK_F3: {
-        global_currentMenu = GlobalMenus::pattern_menu;
+        currentMenu = GlobalMenus::pattern_menu;
         onOpenMenu(cursorPosition);
         break;
       }
       case SDLK_F4: {
-        global_currentMenu = GlobalMenus::instrument_menu;
+        currentMenu = GlobalMenus::instrument_menu;
         onOpenMenu(cursorPosition);
         break;
       }
       case SDLK_F5: {
-        global_currentMenu = GlobalMenus::order_management_menu;
+        currentMenu = GlobalMenus::order_management_menu;
         onOpenMenu(cursorPosition);
         break;
       }
       case SDLK_F6: {
-        global_currentMenu = GlobalMenus::options_menu;
+        currentMenu = GlobalMenus::options_menu;
         onOpenMenu(cursorPosition);
         break;
       }
       case SDLK_F7: {
-        global_currentMenu = GlobalMenus::file_menu;
+        currentMenu = GlobalMenus::file_menu;
         onOpenMenu(cursorPosition);
         break;
       }
@@ -171,49 +171,49 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
       }
       case SDLK_RETURN:
       case SDLK_RETURN2: {
-        if (global_currentMenu == GlobalMenus::file_menu) {
+        if (currentMenu == GlobalMenus::file_menu) {
           int i = 0;
           bool found = false;
-          fileMenu_errorText = const_cast<char *>("");
+          fileMenuError = const_cast<char *>("");
           try {
-            if (std::filesystem::exists(fileMenu_directoryPath) &&
-                std::filesystem::is_directory(fileMenu_directoryPath)) {
+            if (std::filesystem::exists(fileMenuPath) &&
+                std::filesystem::is_directory(fileMenuPath)) {
               // Iterate through each file in the directory
               for (const auto &entry : std::filesystem::directory_iterator(
-                       fileMenu_directoryPath)) {
+                       fileMenuPath)) {
                 if (entry.path().filename().string()[0] == '.')
                   continue;
                 if (i++ == static_cast<int>(cursorPosition.y)) {
                   found = true;
                   if (entry.is_directory()) {
                     std::string newPath;
-                    if (fileMenu_directoryPath[fileMenu_directoryPath.length() -
+                    if (fileMenuPath[fileMenuPath.length() -
                                                1] == PATH_SEPERATOR)
-                      newPath = fileMenu_directoryPath +
+                      newPath = fileMenuPath +
                                 entry.path().filename().string();
                     else
-                      newPath = fileMenu_directoryPath + PATH_SEPERATOR_S +
+                      newPath = fileMenuPath + PATH_SEPERATOR_S +
                                 entry.path().filename().string();
-                    if (std::filesystem::exists(fileMenu_directoryPath)) {
-                      fileMenu_directoryPath = newPath;
+                    if (std::filesystem::exists(fileMenuPath)) {
+                      fileMenuPath = newPath;
                     }
                     cursorPosition.y = 0;
                   } else {
-                    audio_freeze = true;
-                    while (!audio_isFrozen) {
+                    freezeAudio = true;
+                    while (!audioIsFrozen) {
                     };
                     if (loadFile(entry.path())) {
-                      if (SDL_strlen(fileMenu_errorText) == 0)
-                        fileMenu_errorText =
+                      if (SDL_strlen(fileMenuError) == 0)
+                        fileMenuError =
                             const_cast<char *>("Refused to load the file");
                     } else {
-                      patternMenu_orderIndex = 0;
-                      patternMenu_viewMode = 3;
-                      global_currentMenu = GlobalMenus::pattern_menu;
+                      currentlyViewedOrder = 0;
+                      viewMode = 3;
+                      currentMenu = GlobalMenus::pattern_menu;
                       onOpenMenu(cursorPosition);
-                      global_unsavedChanges = false;
+                      hasUnsavedChanges = false;
                     };
-                    audio_freeze = false;
+                    freezeAudio = false;
                   }
                   break;
                 }
@@ -223,10 +223,10 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
             cursorPosition.y = 0;
           }
           if (!found) {
-            if (std::filesystem::path(fileMenu_directoryPath)
+            if (std::filesystem::path(fileMenuPath)
                     .has_parent_path()) {
-              fileMenu_directoryPath =
-                  std::filesystem::path(fileMenu_directoryPath)
+              fileMenuPath =
+                  std::filesystem::path(fileMenuPath)
                       .parent_path()
                       .string();
               cursorPosition.y = 0;
@@ -234,9 +234,9 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
           }
           break;
         }
-        if (!audio_freeze) {
-          audio_isPlaying = !audio_isPlaying;
-          if (audio_isPlaying) {
+        if (!freezeAudio) {
+          playAudio = !playAudio;
+          if (playAudio) {
             for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
               unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
               row *currentRow = orders.at(i)->at(patternIndex)->at(0);
@@ -247,32 +247,32 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
         break;
       }
       }
-      if (global_currentMenu == GlobalMenus::pattern_menu) {
+      if (currentMenu == GlobalMenus::pattern_menu) {
         switch (code) {
         case 'p': {
           if (orders.tableCount() == 0)
-            patternMenu_orderIndex = 0;
+            currentlyViewedOrder = 0;
           else
-            patternMenu_orderIndex =
-                std::max(0, static_cast<int>(patternMenu_orderIndex) - 1);
+            currentlyViewedOrder =
+                std::max(0, static_cast<int>(currentlyViewedOrder) - 1);
           break;
         }
         case 'n': {
           if (orders.tableCount() == 0)
-            patternMenu_orderIndex = 0;
+            currentlyViewedOrder = 0;
           else
-            patternMenu_orderIndex =
-                SDL_min(indexes.rowCount() - 1, patternMenu_orderIndex + 1);
+            currentlyViewedOrder =
+                SDL_min(indexes.rowCount() - 1, currentlyViewedOrder + 1);
           break;
         }
         case 'v': {
-          if (patternMenu_viewMode < 5)
-            patternMenu_viewMode++;
+          if (viewMode < 5)
+            viewMode++;
           break;
         }
         case 'u': {
-          if (patternMenu_viewMode > 0) {
-            patternMenu_viewMode--;
+          if (viewMode > 0) {
+            viewMode--;
             cursorPosition.x = 0;
           }
           break;
@@ -283,14 +283,14 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
         unsigned char selectedInstrument =
             cursorPosition.x /
             patternMenu_instrumentVariableCount[static_cast<size_t>(
-                patternMenu_viewMode)];
+                viewMode)];
         unsigned char selectedVariable =
             cursorPosition.x %
             patternMenu_instrumentVariableCount[static_cast<size_t>(
-                patternMenu_viewMode)];
+                viewMode)];
         row *r =
             orders.at(selectedInstrument)
-                ->at(indexes.at(patternMenu_orderIndex)->at(selectedInstrument))
+                ->at(indexes.at(currentlyViewedOrder)->at(selectedInstrument))
                 ->at(cursorPosition.y);
         if (selectedVariable == 0) {
           bool moveDown = true;
@@ -367,7 +367,7 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
           }
           if (moveDown) {
             cursorPosition.y++;
-            global_unsavedChanges = true;
+            hasUnsavedChanges = true;
           }
         } else if (selectedVariable == 1) {
           bool moveDown = true;
@@ -416,7 +416,7 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
           }
           if (moveDown) {
             cursorPosition.y++;
-            global_unsavedChanges = true;
+            hasUnsavedChanges = true;
           }
         } else if (selectedVariable < 4) {
           if ((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')) {
@@ -433,7 +433,7 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
               cursorPosition.y++;
               cursorPosition.x--;
             }
-            global_unsavedChanges = true;
+            hasUnsavedChanges = true;
           }
         } else {
           unsigned char idx = (selectedVariable - 4) % 5;
@@ -470,7 +470,7 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
             }
             if (moveDown) {
               cursorPosition.y++;
-              global_unsavedChanges = true;
+              hasUnsavedChanges = true;
             }
           } else if ((code >= '0' && code <= '9') ||
                      (code >= 'a' && code <= 'f')) {
@@ -488,38 +488,38 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
               cursorPosition.x -= 3;
             } else
               cursorPosition.x++;
-            global_unsavedChanges = true;
+            hasUnsavedChanges = true;
           }
         }
       } else {
         switch (code) {
         case 'z': {
-          if (global_currentMenu == GlobalMenus::instrument_menu &&
+          if (currentMenu == GlobalMenus::instrument_menu &&
               instrumentSystem.inst_count() < 254) {
             instrumentSystem.add_inst(audioChannelType::null);
             orders.at(orders.addTable())->add_order();
             indexes.addInst();
-          } else if (global_currentMenu == GlobalMenus::order_menu) {
+          } else if (currentMenu == GlobalMenus::order_menu) {
             indexes.addRow();
           } else
             break;
-          global_unsavedChanges = true;
+          hasUnsavedChanges = true;
           break;
         }
         case 'x': {
-          if (global_currentMenu == GlobalMenus::instrument_menu &&
+          if (currentMenu == GlobalMenus::instrument_menu &&
               instrumentSystem.inst_count() > 0) {
             instrumentSystem.remove_inst(cursorPosition.y);
             orders.removeTable(cursorPosition.y);
             indexes.removeInst(cursorPosition.y);
             if (orders.tableCount() == 0)
-              patternMenu_orderIndex = 0;
-            global_unsavedChanges = true;
-          } else if (global_currentMenu == GlobalMenus::order_menu &&
+              currentlyViewedOrder = 0;
+            hasUnsavedChanges = true;
+          } else if (currentMenu == GlobalMenus::order_menu &&
                      indexes.rowCount() > 1) {
             indexes.removeRow(cursorPosition.y);
-            global_unsavedChanges = true;
-          } else if (global_currentMenu == GlobalMenus::order_management_menu &&
+            hasUnsavedChanges = true;
+          } else if (currentMenu == GlobalMenus::order_management_menu &&
                      cursorPosition.subMenu == 0 && orders.tableCount() > 0) {
             if (cursorPosition.x == 0)
               break;
@@ -535,16 +535,16 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
             }
 
             orders.at(cursorPosition.y)->remove_order(cursorPosition.x);
-            global_unsavedChanges = true;
+            hasUnsavedChanges = true;
           }
           break;
         }
         case 'c': {
-          if (global_currentMenu == GlobalMenus::instrument_menu &&
+          if (currentMenu == GlobalMenus::instrument_menu &&
               instrumentSystem.inst_count() > 0) {
             instrumentSystem.at(cursorPosition.y)->cycle_type();
-            global_unsavedChanges = true;
-          } else if (global_currentMenu == GlobalMenus::order_management_menu &&
+            hasUnsavedChanges = true;
+          } else if (currentMenu == GlobalMenus::order_management_menu &&
                      orders.tableCount() > 0) {
             if (cursorPosition.subMenu == 0) {
               cursorPosition.selection.x = cursorPosition.x;
@@ -579,67 +579,67 @@ void onSdlkeydown(SDL_Event *event, int &quit, GlobalMenus &global_currentMenu,
             cursorPosition.subMenu = 0;
             cursorPosition.y = 0;
             cursorPosition.x = 0;
-            global_unsavedChanges = true;
+            hasUnsavedChanges = true;
           }
           break;
         }
         case 'w': {
-          if (global_currentMenu == GlobalMenus::order_menu &&
+          if (currentMenu == GlobalMenus::order_menu &&
               instrumentSystem.inst_count() > 0) {
             if (indexes.at(cursorPosition.y)->at(cursorPosition.x) < 254) {
               indexes.at(cursorPosition.y)->increment(cursorPosition.x);
-              global_unsavedChanges = true;
+              hasUnsavedChanges = true;
             }
 
             while (indexes.at(cursorPosition.y)->at(cursorPosition.x) >=
                    orders.at(cursorPosition.x)->order_count())
               orders.at(cursorPosition.x)->add_order();
-          } else if (global_currentMenu == GlobalMenus::options_menu) {
+          } else if (currentMenu == GlobalMenus::options_menu) {
             if (cursorPosition.y == 0) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
-                  audio_tenpo < 65525) {
-                audio_tenpo += 10;
-                global_unsavedChanges = true;
-              } else if (audio_tenpo < 65534) {
-                audio_tenpo++;
-                global_unsavedChanges = true;
+                  audio_tempo < 65525) {
+                audio_tempo += 10;
+                hasUnsavedChanges = true;
+              } else if (audio_tempo < 65534) {
+                audio_tempo++;
+                hasUnsavedChanges = true;
               }
             } else {
               if (patternLength < 256) {
                 patternLength++;
                 orders.setRowCount(patternLength);
-                global_unsavedChanges = true;
+                hasUnsavedChanges = true;
               }
             }
           }
           break;
         }
         case 's': {
-          if (global_currentMenu == GlobalMenus::order_menu &&
+          if (currentMenu == GlobalMenus::order_menu &&
               instrumentSystem.inst_count() > 0) {
             if (indexes.at(cursorPosition.y)->at(cursorPosition.x) > 0) {
               indexes.at(cursorPosition.y)->decrement(cursorPosition.x);
-              global_unsavedChanges = true;
+              hasUnsavedChanges = true;
             }
-          } else if (global_currentMenu == GlobalMenus::options_menu) {
+          } else if (currentMenu == GlobalMenus::options_menu) {
             if (cursorPosition.y == 0) {
               // RPM
               if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
                    currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
-                  audio_tenpo > 40) {
-                audio_tenpo -= 10;
-                global_unsavedChanges = true;
-              } else if (audio_tenpo > 30) {
-                audio_tenpo--;
-                global_unsavedChanges = true;
+                  audio_tempo > 40) {
+                audio_tempo -= 10;
+                hasUnsavedChanges = true;
+              } else if (audio_tempo > 30) {
+                audio_tempo--;
+                hasUnsavedChanges = true;
               }
             } else {
               if (patternLength > 16) {
                 patternLength--;
                 orders.setRowCount(patternLength);
-                global_unsavedChanges = true;
+                hasUnsavedChanges = true;
               }
             }
           }

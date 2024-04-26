@@ -146,7 +146,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                   const unsigned char currentRow, orderStorage &orders,
                   const unsigned short currentlyViewedOrder,
                   const char currentViewMode, instrumentStorage &instruments,
-                  const unsigned short tenpo, const unsigned short paternLength,
+                  const unsigned short tempo, const unsigned short paternLength,
                   const char *errorText, const std::string &fileMenuDirectory,
                   const std::string saveFileName,
                   const std::string renderFileName) {
@@ -842,7 +842,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       text_drawText(renderer, const_cast<char *>("Rows per order"), 2, 0, 80,
                     visual_whiteText, cursorPosition.y == 1, fontTileCountW);
       char numbers[6];
-      visual_numberToString(numbers, tenpo);
+      visual_numberToString(numbers, tempo);
       text_drawText(renderer, numbers, 2, 256, 64, visual_whiteText,
                     cursorPosition.y == 0, fontTileCountW);
       visual_numberToString(numbers, paternLength);
