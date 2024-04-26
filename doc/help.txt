@@ -185,9 +185,12 @@ TT |NO VV Eeeee Eeeee|NO VV Eeeee Eeeee|
 
     TT - The row number. Nothing else.
 
-    N- Note. Goes from A (A) to L (G#).
-       Each letter is 1 semitone- No
-       sharps or flats!
+    N- Note. Goes from 0 (A) to B (G#).
+       In hex, shows how many notes
+       above A (the musical note) you
+       are. C D E and F do nothing
+       (you can represent them using
+       0 1 2 3 on the next octave.)
 
     O- Octave. Goes from 0 to 9. The
        octave origin is at A instead of

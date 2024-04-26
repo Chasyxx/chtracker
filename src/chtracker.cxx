@@ -1092,51 +1092,51 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
         if (selectedVariable == 0) {
           bool moveDown = true;
           switch (code) {
-          case 'a':
+          case '0':
             r->feature = rowFeature::note;
             r->note = 'A';
             break;
-          case 'b':
+          case '1':
             r->feature = rowFeature::note;
             r->note = 'B';
             break;
-          case 'c':
+          case 'c': case '2':
             r->feature = rowFeature::note;
             r->note = 'C';
             break;
-          case 'd':
+          case 'd': case '3':
             r->feature = rowFeature::note;
             r->note = 'D';
             break;
-          case 'e':
+          case 'e': case '4':
             r->feature = rowFeature::note;
             r->note = 'E';
             break;
-          case 'f':
+          case 'f': case '5':
             r->feature = rowFeature::note;
             r->note = 'F';
             break;
-          case 'g':
+          case 'g': case '6':
             r->feature = rowFeature::note;
             r->note = 'G';
             break;
-          case 'h':
+          case 'h': case '7':
             r->feature = rowFeature::note;
             r->note = 'H';
             break;
-          case 'i':
+          case 'i': case '8':
             r->feature = rowFeature::note;
             r->note = 'I';
             break;
-          case 'j':
+          case 'j': case '9':
             r->feature = rowFeature::note;
             r->note = 'J';
             break;
-          case 'k':
+          case 'k': case 'a':
             r->feature = rowFeature::note;
             r->note = 'K';
             break;
-          case 'l':
+          case 'l': case 'b':
             r->feature = rowFeature::note;
             r->note = 'L';
             break;
@@ -1922,14 +1922,14 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
           row *r = currentOrder->at(rowIndex);
           switch (r->feature) {
           case rowFeature::note: {
-            text_drawBigChar(renderer, indexes_charToIdx(r->note), 2,
+            text_drawBigChar(renderer, indexes_charToIdx(hex(r->note-'A')), 2,
                              16 * (4 + localCurrentCollumn), y,
-                             visual_whiteText,
+                             visual_blueText,
                              (rowSeleted && selectedVariable == 0) ||
                                  (audio_isPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx(hex(r->octave)), 2,
                              16 * (5 + localCurrentCollumn), y,
-                             visual_whiteText,
+                             visual_magentaText,
                              (rowSeleted && selectedVariable == 1) ||
                                  (audio_isPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
@@ -1952,12 +1952,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window) {
           case rowFeature::empty: {
             text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                              16 * (4 + localCurrentCollumn), y,
-                             visual_whiteText,
+                             visual_greyText,
                              (rowSeleted && selectedVariable == 0) ||
                                  (audio_isPlaying && cursorY == rowIndex));
             text_drawBigChar(renderer, indexes_charToIdx('.'), 2,
                              16 * (5 + localCurrentCollumn), y,
-                             visual_whiteText,
+                             visual_greyText,
                              (rowSeleted && selectedVariable == 1) ||
                                  (audio_isPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;

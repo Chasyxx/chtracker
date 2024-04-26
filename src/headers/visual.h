@@ -105,12 +105,14 @@ void text_drawText(SDL_Renderer *r, char *str, int size, int x, int y,
 void line_drawLine(SDL_Renderer *r, int xa, int ya, int xb, int yb,
                    SDL_Color color);
 
-const SDL_Color visual_blackText = {0, 0, 0, 255};
-const SDL_Color visual_redText = {255, 0, 0, 255};
-const SDL_Color visual_greenText = {0, 255, 0, 255};
-const SDL_Color visual_blueText = {0, 0, 255, 255};
-const SDL_Color visual_yellowText = {255, 255, 0, 255};
-const SDL_Color visual_greyText = {128, 128, 128, 255};
-const SDL_Color visual_whiteText = {255, 255, 255, 255};
+const SDL_Color visual_blackText =   {.r=0,   .g=0,   .b=0,   .a=255};
+const SDL_Color visual_redText =     {.r=255, .g=0,   .b=0,   .a=255};
+const SDL_Color visual_greenText =   {.r=0,   .g=255, .b=0,   .a=255};
+const SDL_Color visual_yellowText =  {.r=255, .g=255, .b=0,   .a=255};
+const SDL_Color visual_blueText =    {.r=0,   .g=0,   .b=255, .a=255};
+const SDL_Color visual_magentaText = {.r=255, .g=0,   .b=255, .a=255};
+const SDL_Color visual_cyanText =    {.r=0,   .g=255, .b=255, .a=255};
+const SDL_Color visual_whiteText =   {.r=255, .g=255, .b=255, .a=255};
+const SDL_Color visual_greyText =    {.r=128, .g=128, .b=128, .a=255};
 
 #endif
