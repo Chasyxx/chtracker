@@ -1,0 +1,24 @@
+name: compile
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+  - cron: "0 12 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install SDL2
+      run: sudo apt-get install -y libsdl2-dev
+    - name: configure
+      run: ./configure.sh
+    - name: make
+      run: make
