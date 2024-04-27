@@ -27,8 +27,6 @@
  *                                     *
  ***************************************/
 
-#error This is a test error for github actions
-
 #include <SDL2/SDL.h>
 
 #include <SDL2/SDL_error.h>
