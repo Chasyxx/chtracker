@@ -2,25 +2,27 @@
 
 WARNINGS=0
 COUNT_WARNINGS=0
+command -v expr 2> /dev/null 1> /dev/null && COUNT_WARNINGS=1
 
-on() { ! test -v $1; }
+on() { [ -n "$1" ]; }
 
 # Default values
 WERROR_ENABLED=1
 AUTOADD_SDL=1
 DRY_RUN=0
+AUTODEFINE_CXX=1
 if on $CFLAGS; then
 	WERROR_ENABLED=0
 else
 	CFLAGS="-O2 -Wall -Wextra -I$PWD/src/headers"
 fi
+on $CXXFLAGS && AUTODEFINE_CXX=0
 PREFIX="/usr/local"
-
 on $BINDIRS && BINDIRS="$BINDIRS "
 BINDIRS="$BINDIRS/usr/local/bin /usr/bin /bin"
 
-on $CC || CC=gcc
-on $CXX || CXX=g++
+on $CC   || CC=gcc
+on $CXX  || CXX=g++
 on $CCLD || CCLD=ld
 
 ### OPTIONAL DEPS TRACKING
@@ -44,20 +46,27 @@ print_usage() {
 	echo "                   flag."
 	echo ""
 	echo "--clean          : Runs \`make clean\`, and then removes all makefiles. A total"
-	echo "                   clean of the source tree."
+	echo "  	clean of the source tree."
 	echo ""
+	echo "--manual-cxx     : Don't automatically set CXXFLAGS to CFLAGSwith C++ parameters."
+	echo "                   Implicit if CXXFLAGS is set. If this is used and CXXFLAGS"
+	echo "                   is not set, CXXFLAGS is just set to CFLAGS."
+	echo ""
+	#    "--------------------------------------------------------------------------------"
 	echo ""
 	echo "Usable enviornment variables:"
-	echo "CXX    : C++ compiler. Defaults to g++"
+	echo "CXX      : C++ compiler. Defaults to g++"
 	echo ""
-	echo "CC     : C compiler. Defaults to gcc"
+	echo "CC       : C compiler. Defaults to gcc"
 	echo ""
-	echo "CCLD   : Linker. Defaults to ld"
+	echo "CCLD     : Linker. Defaults to ld"
 	echo ""
-	echo "CFLAGS : Custom cflags. Implicitly concatenated with SDL cflags unless"
+	echo "CFLAGS   : Custom cflags. Implicitly concatenated with SDL cflags unless"
 	echo "         --disable-sdl is used."
 	echo ""
-	echo "LIBS   : Custom libss. Implicitly concatenated with SDL libs unless"
+	echo "CXXFLAGS : Special C++ version of CFLAGS."
+	echo ""
+	echo "LIBS     : Custom libss. Implicitly concatenated with SDL libs unless"
 	echo "         --disable-sdl is used."
 	#    "--------------------------------------------------------------------------------"
 }
@@ -87,6 +96,9 @@ while [ $# -gt 0 ]; do
 		--prefix=*)
 			PREFIX="${1#*=}"
 			notice "Prefix set to $PREFIX"
+			;;
+		--manual-cxx)
+			AUTODEFINE_CXX=0
 			;;
 		-h|--help)
 			print_usage
@@ -174,7 +186,6 @@ fi
 
 require		$CXX
 require 	$CC
-want 		expr 		&& COUNT_WARNINGS=1
 prefer 		$CCLD
 want 		install     || notice "\`install\` is needed for \`make install\`"
 lookfor 	perl 		&& TRACK_PERL=1
@@ -242,57 +253,66 @@ if ! exists $DOCDIR; then
 	warning "$DOCDIR doesn't exist!"
 fi
 
-notice "Final cflags are $CFLAGS"
-notice "Final libs are $LIBS" 
-notice "Final install binary directory is $BINDIR"
-notice "Final install documentation directory is $DOCDIR"
+if [ $AUTODEFINE_CXX -eq 1 ]; then
+	CXXFLAGS="$CFLAGS -std=c++17"
+else if ! on $CXXFLAGS; then
+	CXXFLAGS=$CFLAGS
+fi
+fi
+
+checkwarnings
+
+notice "C   flags: $CFLAGS"
+notice "C++ flags: $CXXFLAGS"
+notice "lib flags: $LIBS" 
+notice "bin dir  : $BINDIR"
+notice "doc dir  : $DOCDIR"
 
 
 [ $DRY_RUN -eq 1 ] && exit 0;
 
-checkwarnings
 notice "Generating Makefiles"
 
 notice " - ./src/order"
 cat > src/order/Makefile << EOS
 CC=$CC
 CXX=$CXX
-CFLAGS=$CFLAGS
+CXXFLAGS=$CXXFLAGS
 LIBS=$LIBS
 CCLD=$CCLD
 
 all: ../order.oxx
 
 ../order.oxx: order.cxx
-	\$(CXX) \$(CFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
 EOS
 
 notice " - ./src/timer"
 cat > src/timer/Makefile << EOS
 CC=$CC
 CXX=$CXX
-CFLAGS=$CFLAGS
+CXXFLAGS=$CXXFLAGS
 LIBS=$LIBS
 CCLD=$CCLD
 
 all: ../timer.oxx
 
 ../timer.oxx: timer.cxx
-	\$(CXX) \$(CFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
 EOS
 
 notice " - ./src/channel"
 cat > src/channel/Makefile << EOS
 CC=$CC
 CXX=$CXX
-CFLAGS=$CFLAGS
+CXXFLAGS=$CXXFLAGS
 LIBS=$LIBS
 CCLD=$CCLD
 
 all: ../channel.oxx
 
 ../channel.oxx: channel.cxx
-	\$(CXX) \$(CFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
 EOS
 
 notice " - ./src/visual"
@@ -328,6 +348,7 @@ cat > src/Makefile << EOS
 CC=$CC
 CXX=$CXX
 CFLAGS=$CFLAGS
+CXXFLAGS=$CXXFLAGS
 LIBS=$LIBS
 CCLD=$CCLD
 BINDIR=$BINDIR
@@ -367,7 +388,7 @@ timer.oxx: timer/timer.cxx
 	@\$(MAKE) -C timer
 
 chtracker.oxx: chtracker.cxx screenUpdate.cxx onKeydown.cxx
-	\$(CXX) \$(CFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
 
 %.out: %.o
 	\$(CC) \$(LIBS) -o \$@ \$<
@@ -379,7 +400,7 @@ chtracker.oxx: chtracker.cxx screenUpdate.cxx onKeydown.cxx
 	\$(CC) \$(CFLAGS) -c -o \$@ \$<
 
 %.oxx: %.cxx
-	\$(CXX) \$(CFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
 EOS
 
 notice " - ."
