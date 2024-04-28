@@ -32,8 +32,8 @@ jobs:
         run: |
           wget https://www.libsdl.org/release/SDL2-devel-2.30.2-mingw.tar.gz
           tar -xzvf SDL2-devel-2.30.2-mingw.tar.gz
-          rm -rf SDL2-2.0.16 SDL2-devel-2.0.16-mingw.tar.gz
+          rm -f SDL2-devel-2.30.2-mingw.tar.gz
       - name: configure for Windows cross-compilation
-        run: CFLAGS="-O2 -I$PWD/SDL2-2.30.2/x86_64-w64-mingw32/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(./SDL2-2.30.2/x86_64-w64-mingw32/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
+        run: CFLAGS="-O2 -I$PWD/SDL2-2.30.2/x86_64-w64-mingw32/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror -std=c++17" LIBS="$(./SDL2-2.30.2/x86_64-w64-mingw32/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
       - name: make a Windows executable
         run: make
