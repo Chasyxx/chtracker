@@ -36,7 +36,7 @@
 *                                    *
 *************************************/
 
-#define AUDIO_SAMPLE_COUNT 512
+#define AUDIO_SAMPLE_COUNT 1024
 
 #if defined(_WIN32)
 #define PATH_SEPERATOR_S "\\"

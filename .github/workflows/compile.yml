@@ -1,4 +1,4 @@
-name: Compile with GCC
+name: Compilation
 
 on:
   push:
@@ -10,14 +10,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Install SDL libraries
+    - name: Install SDL2 for Linux compiltion
       run: sudo apt-get install libsdl2-dev
 
-    - name: configure
+    - name: configure for Linux compiltion
       run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0" ./configure.sh --disable-sdl
-    - name: make
+    - name: make a Linux executable
       run: make
+
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MinGW-w64
+        run: sudo apt-get install mingw-w64
+      - name: Install SDL2 for Windows cross-compilation
+        run: |
+          wget https://www.libsdl.org/release/SDL2-devel-2.30.2-mingw.tar.gz
+          tar -xzvf SDL2-devel-2.30.2-mingw.tar.gz
+          rm -rf SDL2-2.0.16 SDL2-devel-2.0.16-mingw.tar.gz
+      - name: configure for Windows cross-compilation
+        run: CFLAGS="-O2 -I$PWD/SDL2-2.30.2/x86_64-w64-mingw32/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(./SDL2-2.30.2/x86_64-w64-mingw32/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
+      - name: make a Windows executable
+        run: make
