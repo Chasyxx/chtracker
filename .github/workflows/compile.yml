@@ -33,7 +33,15 @@ jobs:
           wget https://www.libsdl.org/release/SDL2-devel-2.30.2-mingw.tar.gz
           tar -xzvf SDL2-devel-2.30.2-mingw.tar.gz
           rm -f SDL2-devel-2.30.2-mingw.tar.gz
+
+      - name: get HIDAPI for linking purposes
+        run: |
+          git clone https://github.com/libusb/hidapi.git
+          cd hidapi/windows
+          x86_64-w64-mingw32-gcc -I$PWD -I$PWD/../hidapi -c -o hid.o hid.c
+          mv hid.o ../../hid.o
+
       - name: configure for Windows cross-compilation
-        run: CFLAGS="-O2 -I$PWD/SDL2-2.30.2/x86_64-w64-mingw32/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(./SDL2-2.30.2/x86_64-w64-mingw32/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
+        run: CFLAGS="-O2 -I$PWD/SDL2-2.30.2/x86_64-w64-mingw32/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="hid.o $(./SDL2-2.30.2/x86_64-w64-mingw32/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
       - name: make a Windows executable
         run: make
