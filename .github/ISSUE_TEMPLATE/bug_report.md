@@ -21,16 +21,16 @@ Steps to reproduce the behavior. E.g:
 A clear and concise description of what you expected to happen.
 
 **Actual behavior**
-A clear and concise description of what he program actually did to contradict what is expected.
+A clear and concise description of what the program actually did to contradict what is expected.
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
 **System information**
 Give the following information:
- - OS: [e.g. Windows, Linux]
- - Version [e.g. 0.4.0]
- - Where you got the copy (e.g. Releases)
+ - OS: (e.g. Windows, Linux)
+ - Where you got the copy (e.g. Releases, Actions artifacts)
+ - Version (e.g. 0.4.0 for releases, a commit for artifacts)
  - Did you modify your copy?
 
 **Additional context**
