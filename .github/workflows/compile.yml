@@ -21,6 +21,11 @@ jobs:
       run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0" ./configure.sh --disable-sdl
     - name: make a Linux executable
       run: make
+      - name: Upload Linux executable
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-executable
+          path: ./chtracker
 
   windows:
     runs-on: ubuntu-latest
@@ -44,3 +49,8 @@ jobs:
         run: CFLAGS="-O2 -I$PWD/libsdl/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(./libsdl/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
       - name: make a Windows executable
         run: make
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-executable
+          path: ./chtracker.exe
