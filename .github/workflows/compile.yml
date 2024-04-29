@@ -41,6 +41,6 @@ jobs:
           cd ../..
 
       - name: configure for Windows cross-compilation
-        run: CFLAGS="-O2 -I$PWD/libsdl/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(./libsdl2/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
+        run: CFLAGS="-O2 -I$PWD/libsdl/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(./libsdl/bin/sdl2-config --libs) --static" CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ./configure.sh --disable-sdl
       - name: make a Windows executable
         run: make
