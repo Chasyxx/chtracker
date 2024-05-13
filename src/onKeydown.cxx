@@ -62,7 +62,7 @@ int renderTo(std::filesystem::path);
 void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
                   CursorPos &cursorPosition, std::string &saveMenuFilename,
                   std::string &renderMenuFilename, std::filesystem::path &fileMenuPath,
-                  char *fileMenuError, bool &hasUnsavedChanges,
+                  char *&fileMenuError, bool &hasUnsavedChanges,
                   const unsigned int limitX, const unsigned int limitY,
                   bool &freezeAudio, bool &audioIsFrozen,
                   unsigned short &currentlyViewedOrder, char &viewMode,

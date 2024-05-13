@@ -207,7 +207,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                   const unsigned short currentlyViewedOrder,
                   const char currentViewMode, instrumentStorage &instruments,
                   const unsigned short tempo, const unsigned short paternLength,
-                  const char *errorText, const std::filesystem::path &fileMenuDirectory,
+                  char *& errorText, const std::filesystem::path &fileMenuDirectory,
                   const std::string saveFileName,
                   const std::string renderFileName, const std::filesystem::path& docPath) {
   long millis = SDL_GetTicks64();
