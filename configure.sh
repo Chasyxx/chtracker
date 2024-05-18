@@ -11,6 +11,7 @@ WERROR_ENABLED=1
 AUTOADD_SDL=1
 DRY_RUN=0
 AUTODEFINE_CXX=1
+ICON=0
 if on $CFLAGS; then
 	WERROR_ENABLED=0
 else
@@ -21,62 +22,56 @@ PREFIX="/usr/local"
 on $BINDIRS && BINDIRS="$BINDIRS "
 BINDIRS="$BINDIRS/usr/local/bin /usr/bin /bin"
 
-on $CC   || CC=gcc
-on $CXX  || CXX=g++
-on $CCLD || CCLD=ld
+on $CC   || CC="gcc -c"
+on $CXX  || CXX="g++ -c"
+on $CCLD || CCLD=g++
+on $RES  || RES=windres
 
 ### OPTIONAL DEPS TRACKING
 	TRACK_PERL=0
 ### END OPTIONAL DEPS TRACKING
 
 print_usage() {
-	echo "Usage: $0 [-n|--dry] [-h|--help] [--disable-werror] [--disable-sdl] [--clean]"
-	# echo "Parameters needed for long options are needed for short options too."
-	echo ""
-	echo "Usable flags:"
-	echo "-h --help        : Show this list"
-	echo ""
-	echo "--disable-werror : Removes the -Werror from the compiler flags. Implicit with a"
-	echo "                   custom CFLAGS variable."
-	echo ""
-	echo "--disable-sdl    : Using this disables all SDL checks. It won't check for"
-	echo "                   sdl2-config, it won't check SDL's include and library paths,"
-	echo "                   and it won't add SDL's cflags and libs. Set custom paths with"
-	echo "                   the CFLAGS and LIBS enviornment variables if you use this"
-	echo "                   flag."
-	echo ""
-	echo "--clean          : Runs \`make clean\`, and then removes all makefiles. A total"
-	echo "  	clean of the source tree."
-	echo ""
-	echo "--manual-cxx     : Don't automatically set CXXFLAGS to CFLAGSwith C++ parameters."
-	echo "                   Implicit if CXXFLAGS is set. If this is used and CXXFLAGS"
-	echo "                   is not set, CXXFLAGS is just set to CFLAGS."
-	echo ""
-	#    "--------------------------------------------------------------------------------"
-	echo ""
-	echo "Usable enviornment variables:"
-	echo "CXX      : C++ compiler. Defaults to g++"
-	echo ""
-	echo "CC       : C compiler. Defaults to gcc"
-	echo ""
-	echo "CCLD     : Linker. Defaults to ld"
-	echo ""
-	echo "CFLAGS   : Custom cflags. Implicitly concatenated with SDL cflags unless"
-	echo "         --disable-sdl is used."
-	echo ""
-	echo "CXXFLAGS : Special C++ version of CFLAGS."
-	echo ""
-	echo "LIBS     : Custom libss. Implicitly concatenated with SDL libs unless"
-	echo "         --disable-sdl is used."
-	#    "--------------------------------------------------------------------------------"
+	echo "\
+Usage: $0 [-n|--dry] [-h|--help] [--disable-werror] [--disable-sdl] [--clean]
+
+Usable flags:
+-h --help        : Show this list
+--disable-werror : Removes the -Werror from the compiler flags. Implicit with a
+                   custom CFLAGS variable.
+
+--disable-sdl    : Using this disables all SDL checks. It won't check for
+                   sdl2-config, it won't check SDL's include and library paths,
+                   and it won't add SDL's cflags and libs. Set custom paths with
+                   the CFLAGS and LIBS enviornment variables if you use this
+                   flag.
+
+--clean          : Runs \`make clean\`, and removes all makefiles. A complete
+                   cleanup of the source tree.
+
+--manual-cxx     : Disables automatically setting CXXFLAGS to CFLAGS with C++
+                   parameters. Implicit if CXXFLAGS is explicitly set.
+                    
+
+Usable enviornment variables:
+CXX      : C++ compiler. Defaults to \"g++ -c\"
+CXX      : C   compiler. Defaults to \"gcc -c\"
+CCLD     : Compiler linker. Defaults to \"g++\"
+RES      : Resource generator (currently only used for cross compilation.)
+           Defaults to \"windres\"
+CFLAGS   : Custom C flags. SDL cflags are added automatically unless
+           --disable-sdl is used.
+CXXFLAGS : C++ version of CFLAGS.
+LIBS     : Custom libs. SDL libs are added unless --disable-sdl is used.\
+"
 }
 
 availible() { command -v $1 1> /dev/null; }
 exists() { test -e $1; }
-pass() { echo -e $2 "\e[32m[PASS!]\e[0m $1" 1>&2; }
-notice() { echo -e $2 "\e[34m[INFO ]\e[0m $1" 1>&2; }
-warning() { echo -e $2 "\e[33m[ WARN]\e[0m $1" 1>&2; [ $COUNT_WARNINGS -eq 1 ] && WARNINGS=`expr $WARNINGS + 1`;}
-error() { echo -e $2 "\e[31m[ERROR]\e[0m $1" 1>&2; exit 1; }
+pass() { printf $2 "\e[32m[PASS!]\e[0m $1\n" 1>&2; }
+notice() { printf $2 "\e[34m[INFO ]\e[0m $1\n" 1>&2; }
+warning() { printf $2 "\e[33m[ WARN]\e[0m $1\n" 1>&2; [ $COUNT_WARNINGS -eq 1 ] && WARNINGS=`expr $WARNINGS + 1`;}
+error() { printf $2 "\e[31m[ERROR]\e[0m $1\n" 1>&2; exit 1; }
 
 while [ $# -gt 0 ]; do
 	case $1 in
@@ -106,6 +101,9 @@ while [ $# -gt 0 ]; do
 			;;
 		-n|--dry)
 			DRY_RUN=1
+			;;
+		-i|--icon)
+			ICON=1
 			;;
 		*)
 			print_usage
@@ -164,7 +162,7 @@ prefer() {
 lookfor() {
 	notice "Looking for $1..."
 	if availible $1; then
-		pass "$1 found"
+		notice "$1 found"
 		return 0
 	else
 		notice "You do not have $1"
@@ -186,9 +184,15 @@ fi
 
 require		$CXX
 require 	$CC
-prefer 		$CCLD
+require		$CCLD
+if [ $ICON -eq 1 ]; then
+	require $RES
+else
+	lookfor $RES
+fi
 want 		install     || notice "\`install\` is needed for \`make install\`"
 lookfor 	perl 		&& TRACK_PERL=1
+
 if [ $AUTOADD_SDL -eq 1 ]; then
 	require 	sdl2-config
 
@@ -275,58 +279,46 @@ notice "Generating Makefiles"
 
 notice " - ./src/order"
 cat > src/order/Makefile << EOS
-CC=$CC
 CXX=$CXX
 CXXFLAGS=$CXXFLAGS
-LIBS=$LIBS
-CCLD=$CCLD
 
 all: ../order.oxx
 
 ../order.oxx: order.cxx
-	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 EOS
 
 notice " - ./src/timer"
 cat > src/timer/Makefile << EOS
-CC=$CC
 CXX=$CXX
 CXXFLAGS=$CXXFLAGS
-LIBS=$LIBS
-CCLD=$CCLD
 
 all: ../timer.oxx
 
 ../timer.oxx: timer.cxx
-	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 EOS
 
 notice " - ./src/channel"
 cat > src/channel/Makefile << EOS
-CC=$CC
 CXX=$CXX
 CXXFLAGS=$CXXFLAGS
-LIBS=$LIBS
-CCLD=$CCLD
 
 all: ../channel.oxx
 
 ../channel.oxx: channel.cxx
-	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 EOS
 
 notice " - ./src/visual"
 cat > src/visual/Makefile << EOS
 CC=$CC
-CXX=$CXX
 CFLAGS=$CFLAGS
-LIBS=$LIBS
-CCLD=$CCLD
 
 all: ../visual.o
 
 ../visual.o: visual.c font.i
-	\$(CC) \$(CFLAGS) -c -o \$@ \$<
+	\$(CC) \$(CFLAGS) -o \$@ \$<
 
 EOS
 
@@ -353,6 +345,7 @@ LIBS=$LIBS
 CCLD=$CCLD
 BINDIR=$BINDIR
 DOCDIR=$DOCDIR
+RES=$RES
 CLEAN=rm -fv
 
 all: ../chtracker
@@ -369,8 +362,22 @@ clean:
 	\$(CLEAN) ../chtracker
 	\$(CLEAN) ../chtracker.exe
 
+EOS
+if [ $ICON -eq 1 ]; then
+	cat >> src/Makefile << ----EOS
+../chtracker: timer.oxx order.oxx channel.oxx visual.o resources.o chtracker.oxx
+	\$(CCLD) -o \$@ \$^ \$(LIBS)
+
+resources.o: resources.rc
+	\$(RES) \$< -o \$@
+----EOS
+else
+	cat >> src/Makefile << ----EOS
 ../chtracker: timer.oxx order.oxx channel.oxx visual.o chtracker.oxx
-	\$(CXX) -o \$@ \$^ \$(LIBS)
+	\$(CCLD) -o \$@ \$^ \$(LIBS)
+----EOS
+fi
+cat >> src/Makefile << EOS
 
 visual.o: visual/font.i visual/visual.c
 	@\$(MAKE) -C visual
@@ -388,19 +395,19 @@ timer.oxx: timer/timer.cxx
 	@\$(MAKE) -C timer
 
 chtracker.oxx: chtracker.cxx screenUpdate.cxx onKeydown.cxx
-	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 
 %.out: %.o
-	\$(CC) \$(LIBS) -o \$@ \$<
+	\$(CCLD) \$(LIBS) -o \$@ \$<
 
 %.out: %.oxx
-	\$(CXX) \$(LIBS) -o \$@ \$<
+	\$(CCLD) \$(LIBS) -o \$@ \$<
 
 %.o: %.c
-	\$(CC) \$(CFLAGS) -c -o \$@ \$<
+	\$(CC) \$(CFLAGS) -o \$@ \$<
 
 %.oxx: %.cxx
-	\$(CXX) \$(CXXFLAGS) -c -o \$@ \$<
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 EOS
 
 notice " - ."
