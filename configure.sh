@@ -376,7 +376,7 @@ clean:
 EOS
 if [ $ICON -eq 1 ]; then
 	cat >> src/Makefile << ----EOS
-../chtracker: timer.oxx order.oxx channel.oxx visual.o resources.o chtracker.oxx
+../chtracker: log.oxx timer.oxx order.oxx channel.oxx visual.o resources.o chtracker.oxx
 	\$(CCLD) -o \$@ \$^ \$(LIBS)
 
 resources.o: resources.rc
