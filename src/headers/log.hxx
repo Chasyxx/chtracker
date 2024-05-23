@@ -59,11 +59,26 @@ struct log {
 
 namespace cmd {
 namespace log {
+/**
+ * Log level.
+ * Anything above 4 prints nothing.
+ * 
+ * 0 - all logs (debug, notice, warn, error, critical)
+ * 
+ * 1 - Notices (notice, warn, error, critical)
+ * 
+ * 2 - Warnings (warn and up)
+ * 
+ * 3 - Errors (error and critical)
+ * 
+ * 4 - Critical
+ */
+extern int level;
 extern std::vector<struct log> logs;
-void debug(int loglevel, std::string msg);
-void notice(int loglevel, std::string msg);
-void warning(int loglevel, std::string msg);
-void error(int loglevel, std::string msg);
+void debug(std::string msg);
+void notice(std::string msg);
+void warning(std::string msg);
+void error(std::string msg);
 void critical(std::string msg);
 } // namespace log
 } // namespace cmd

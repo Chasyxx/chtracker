@@ -151,7 +151,6 @@ bool /****/ global_unsavedChanges = false;
  ****************/
 
 namespace cmd {
-int loglevel = 0;
 // 0 - debug
 // 1 - notice
 // 2 - warning
@@ -233,10 +232,10 @@ void audioTickTimers() {
  ******************/
 
 int saveFile(path path) {
-  cmd::log::notice(cmd::loglevel, string("Saving to file ") + path.string());
+  cmd::log::notice(string("Saving to file ") + path.string());
   std::ofstream file(path, std::ios::out | std::ios::binary);
   if (!file || !file.is_open()) {
-    cmd::log::error(cmd::loglevel, "Couldn't open the file");
+    cmd::log::error("Couldn't open the file");
     return 1;
   }
   unsigned char *buffer = new unsigned char[256];
@@ -267,7 +266,7 @@ int saveFile(path path) {
     buffer[i] = 0xff;
   }
   file.write(reinterpret_cast<const char *>(buffer), 256);
-  cmd::log::debug(cmd::loglevel, "Wrote header");
+  cmd::log::debug("Wrote header");
   delete[] buffer;
   for (int i = 0; i < instrumentSystem.inst_count(); i++) {
     buffer = new unsigned char[8];
@@ -282,7 +281,7 @@ int saveFile(path path) {
     file.write(reinterpret_cast<const char *>(buffer), 8);
     delete[] buffer;
   }
-  cmd::log::debug(cmd::loglevel, "Wrote instrument table");
+  cmd::log::debug("Wrote instrument table");
   {
     for (unsigned short orderRowIndex = 0; orderRowIndex < indexes.rowCount();
          orderRowIndex++) {
@@ -294,12 +293,12 @@ int saveFile(path path) {
           try {
             buffer[orderIndex] = indexes.at(orderRowIndex)->at(orderIndex);
           } catch (std::out_of_range &) {
-            cmd::log::warning(cmd::loglevel, "OOR error saving an order index");
+            cmd::log::warning("OOR error saving an order index");
             buffer[orderIndex] = 0;
           }
         }
       } catch (std::out_of_range &) {
-        cmd::log::warning(cmd::loglevel, "OOR error");
+        cmd::log::warning("OOR error");
         continue;
       }
       try {
@@ -307,13 +306,13 @@ int saveFile(path path) {
                    indexes.at(orderRowIndex)->instCount());
       } catch (std::out_of_range &) {
         cmd::log::debug(
-            cmd::loglevel,
+
             "OOR error writing data using index-based instrument count");
         file.write(reinterpret_cast<const char *>(buffer), orders.tableCount());
       }
       delete[] buffer;
     }
-    cmd::log::debug(cmd::loglevel, "Wrote index data");
+    cmd::log::debug("Wrote index data");
     for (unsigned char tableIdx = 0; tableIdx < orders.tableCount();
          tableIdx++) {
       instrumentOrderTable *table = orders.at(tableIdx);
@@ -350,12 +349,12 @@ int saveFile(path path) {
           delete[] buffer;
         }
       }
-      cmd::log::debug(cmd::loglevel, "Wrote an order storage table");
+      cmd::log::debug("Wrote an order storage table");
     }
-    cmd::log::debug(cmd::loglevel, "Wrote order storage");
+    cmd::log::debug("Wrote order storage");
   }
   file.close();
-  cmd::log::debug(cmd::loglevel, "Saved successfully");
+  cmd::log::debug("Saved successfully");
   return 0;
 }
 
@@ -370,11 +369,10 @@ int loadFile(path filePath) {
   audio::pattern = 0;
   audio::time = 0;
   audio::isPlaying = false;
-  cmd::log::notice(cmd::loglevel,
-                   string("Loading file ") + filePath.string());
+  cmd::log::notice(string("Loading file ") + filePath.string());
   std::ifstream file(filePath, std::ios::in | std::ios::binary);
   if (!file || !file.is_open()) {
-    cmd::log::error(cmd::loglevel, "Couldn't open the file");
+    cmd::log::error("Couldn't open the file");
     return 1;
   }
   unsigned char *buffer = new unsigned char[256];
@@ -382,7 +380,7 @@ int loadFile(path filePath) {
   for (int i = 0; i < 9; i++) {
     if (buffer[i] != "CHTRACKER"[i]) {
       fileMenu_errorText = const_cast<char *>("Not a chTRACKER file");
-      cmd::log::error(cmd::loglevel, fileMenu_errorText);
+      cmd::log::error(fileMenu_errorText);
       delete[] buffer;
       file.close();
       return 1;
@@ -390,14 +388,14 @@ int loadFile(path filePath) {
   }
   if (buffer[9] != global_majorVersion) {
     fileMenu_errorText = const_cast<char *>("Major version mismatch");
-    cmd::log::error(cmd::loglevel, fileMenu_errorText);
+    cmd::log::error(fileMenu_errorText);
     delete[] buffer;
     file.close();
     return 1;
   }
   if (buffer[10] > global_minorVersion) {
     fileMenu_errorText = const_cast<char *>("Newer minor version");
-    cmd::log::error(cmd::loglevel, fileMenu_errorText);
+    cmd::log::error(fileMenu_errorText);
     delete[] buffer;
     file.close();
     return 1;
@@ -418,7 +416,7 @@ int loadFile(path filePath) {
 
   buffer = new unsigned char[local_instrumentCount * 8];
   file.read(reinterpret_cast<char *>(buffer), local_instrumentCount * 8);
-  cmd::log::debug(cmd::loglevel, "Creating insteuments");
+  cmd::log::debug("Creating insteuments");
   while (instrumentSystem.inst_count() > 0)
     instrumentSystem.remove_inst(instrumentSystem.inst_count() - 1);
   for (unsigned char instrumentIdx = 0; instrumentIdx < local_instrumentCount;
@@ -432,7 +430,7 @@ int loadFile(path filePath) {
   buffer = new unsigned char[local_instrumentCount * local_orderCount];
   file.read(reinterpret_cast<char *>(buffer),
             local_instrumentCount * local_orderCount);
-  cmd::log::debug(cmd::loglevel, "Reading index data");
+  cmd::log::debug("Reading index data");
   while (indexes.rowCount() > 0)
     indexes.removeRow(indexes.rowCount() - 1);
   for (unsigned short orderIdx = 0; orderIdx < local_orderCount; orderIdx++) {
@@ -448,7 +446,7 @@ int loadFile(path filePath) {
   delete[] buffer;
 
   orders.setRowCount(local_rowsPerPattern);
-  cmd::log::debug(cmd::loglevel, "Reading order data");
+  cmd::log::debug("Reading order data");
   while (orders.tableCount() > 0)
     orders.removeTable(orders.tableCount() - 1);
   for (unsigned char tableIdx = 0; tableIdx < local_instrumentCount;
@@ -499,26 +497,26 @@ int loadFile(path filePath) {
       }
     }
     delete[] buffer;
-    cmd::log::debug(cmd::loglevel, "Read an order table");
+    cmd::log::debug("Read an order table");
   }
 
-  cmd::log::debug(cmd::loglevel, "Setting tempo and pattern length");
+  cmd::log::debug("Setting tempo and pattern length");
   audio::tempo = local_rowsPerMinute;
   patternLength = local_rowsPerPattern;
   file.close();
-  cmd::log::debug(cmd::loglevel, "File read successfully");
+  cmd::log::debug("File read successfully");
   return 0;
 }
 
 int renderTo(path path) {
-  cmd::log::notice(cmd::loglevel, string("Rendering to file ") + path.string());
+  cmd::log::notice(string("Rendering to file ") + path.string());
   if (orders.tableCount() < 1) {
-    cmd::log::notice(cmd::loglevel, "Refusing to render without instruments");
+    cmd::log::notice("Refusing to render without instruments");
     return 1;
   }
   std::ofstream file(path, std::ios::out | std::ios::binary);
   if (!file || !file.is_open()) {
-    cmd::log::error(cmd::loglevel, "Couldn't open the file");
+    cmd::log::error("Couldn't open the file");
     return 1;
   }
   // Estimate the song length
@@ -567,7 +565,7 @@ int renderTo(path path) {
     // Data chunk length
     write32LE(buffer, fileSize - 44, headerIdx);
   }
-  cmd::log::debug(cmd::loglevel, "Header written");
+  cmd::log::debug("Header written");
   audio::pattern = 0;
   audio::row = 0;
   audio::freeze = true;
@@ -617,7 +615,7 @@ int renderTo(path path) {
   file.write(reinterpret_cast<char *>(buffer), fileSize);
   file.close();
   delete[] buffer;
-  cmd::log::debug(cmd::loglevel, "Rendered successfully");
+  cmd::log::debug("Rendered successfully");
   return 0;
 }
 
@@ -893,17 +891,31 @@ void printHelp() {
 #undef pH
 }
 
-void processCommandLineArgument(const char **argv, std::string &argument,
-                                int &p) {
+void processCommandLineArgumentBeforeInit(const char **argv,
+                                          std::string &argument, int &p) {
   if (argument.at(0) == '-') {
     if (argument == "--loglevel" || argument == "-l") {
-      cmd::loglevel = atoi(argv[++p]);
+      cmd::log::level = atoi(argv[++p]);
     } else if (argument == "--verbose" || argument == "-v") {
-      if (cmd::loglevel > 0)
-        cmd::loglevel--;
+      if (cmd::log::level > 0)
+        cmd::log::level--;
     } else if (argument == "--help" || argument == "-?" || argument == "-h") {
       printHelp();
-      quit(0);
+      exit(0);
+    }
+  }
+}
+
+void processCommandLineArgumentAfterInit(const char **argv,
+                                         std::string &argument, int &p) {
+  if (argument.at(0) == '-') {
+    if (argument == "--loglevel" || argument == "-l") {
+      p++;
+    } else if (argument == "--verbose" || argument == "-v") {
+    } else {
+      printHelp();
+      cmd::log::critical("Unknown option " + argument);
+      quit(1);
     }
   } else {
     path loadFilePath = argv[p];
@@ -920,13 +932,6 @@ void processCommandLineArgument(const char **argv, std::string &argument,
 }
 
 int main(int argc, char *argv[]) {
-  cmd::log::notice(cmd::loglevel, "Welcome to chTRACKER!");
-#if defined(_POSIX)
-  if (std::strcmp(std::getenv("USER"), "root") == 0) {
-    cmd::log::warning(cmd::loglevel, "Please don't open this program as root");
-    quit(1);
-  }
-#endif
 #if defined(__linux__)
   {
     int protector = 0;
@@ -936,8 +941,7 @@ int main(int argc, char *argv[]) {
           std::filesystem::read_symlink(executableAbolutePath);
       protector++;
       if (protector >= 64) {
-        cmd::log::warning(cmd::loglevel,
-                          "Too many symlinks to process executable location");
+        cmd::log::warning("Too many symlinks to process executable location");
         break;
       }
     }
@@ -947,11 +951,23 @@ int main(int argc, char *argv[]) {
   { executableAbolutePath = _pgmptr; }
   documentationDirectory = executableAbolutePath.parent_path() / "doc";
 #endif
-  cmd::log::debug(cmd::loglevel,
-                  "The program path is " + executableAbolutePath.string());
-  cmd::log::debug(cmd::loglevel,
-                  "The dynamic docdir is " + documentationDirectory.string());
-  cmd::log::debug(cmd::loglevel, "Starting SDL");
+  if (argc > 1) {
+    for (int p = 1; p < argc; p++) {
+      string arg(argv[p]);
+      processCommandLineArgumentBeforeInit(const_cast<const char **>(argv), arg,
+                                           p);
+    }
+  }
+#if defined(_POSIX)
+  if (std::strcmp(std::getenv("USER"), "root") == 0) {
+    cmd::log::warning("Please don't open this program as root");
+    quit(1);
+  }
+#endif
+  cmd::log::notice("Welcome to chTRACKER!");
+  cmd::log::debug("The program path is " + executableAbolutePath.string());
+  cmd::log::debug("The dynamic docdir is " + documentationDirectory.string());
+  cmd::log::debug("Starting SDL");
   if (SDL_InitSubSystem(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) <
       0) {
     cmd::log::critical(string("Failed to start SDL: ") + SDL_GetError());
@@ -959,7 +975,7 @@ int main(int argc, char *argv[]) {
   }
   int windowWidth = gui::lastWindowWidth = 1024,
       windowHeight = gui::lastWindowHeight = 512;
-  cmd::log::debug(cmd::loglevel, string("Creating window"));
+  cmd::log::debug(string("Creating window"));
   SDL_Window *window = SDL_CreateWindow(
       "ChTracker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth,
       windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
@@ -967,7 +983,7 @@ int main(int argc, char *argv[]) {
     cmd::log::critical(string("Failed to create a window: ") + SDL_GetError());
     quit(1);
   }
-  cmd::log::debug(cmd::loglevel, string("Creating renderer"));
+  cmd::log::debug(string("Creating renderer"));
   SDL_Renderer *renderer =
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   if (renderer == NULL) {
@@ -979,7 +995,8 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     for (int p = 1; p < argc; p++) {
       string arg(argv[p]);
-      processCommandLineArgument(const_cast<const char **>(argv), arg, p);
+      processCommandLineArgumentAfterInit(const_cast<const char **>(argv), arg,
+                                          p);
     }
   }
   sdlLoop(renderer, window);

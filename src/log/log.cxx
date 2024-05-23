@@ -35,18 +35,22 @@ struct log {
 
 namespace cmd {
 namespace log {
+int level = 1;
 std::vector<struct log> logs;
-void log(int loglevel, int severity, std::string msg) {
-  if (loglevel <= severity) {
-    logs.push_back({.msg = msg, .severity = static_cast<char>(severity), .printed = true});
+void log(int severity, std::string msg) {
+  if (level <= severity) {
+    logs.push_back(
+        {.msg = msg, .severity = static_cast<char>(severity), .printed = true});
     std::cerr << severityStrings[severity] << " " << msg << std::endl;
   } else
-    logs.push_back({.msg = msg, .severity = static_cast<char>(severity), .printed = false});
+    logs.push_back({.msg = msg,
+                    .severity = static_cast<char>(severity),
+                    .printed = false});
 }
-void debug(int loglevel, std::string msg) /*****/ { log(loglevel, 0, msg); }
-void notice(int loglevel, std::string msg) /****/ { log(loglevel, 1, msg); }
-void warning(int loglevel, std::string msg) /***/ { log(loglevel, 2, msg); }
-void error(int loglevel, std::string msg) /*****/ { log(loglevel, 3, msg); }
-void critical(std::string msg) /**/ { log(4, 4, msg); }
+void debug(std::string msg) /*****/ { log(0, msg); }
+void notice(std::string msg) /****/ { log(1, msg); }
+void warning(std::string msg) /***/ { log(2, msg); }
+void error(std::string msg) /*****/ { log(3, msg); }
+void critical(std::string msg) /**/ { log(4, msg); }
 } // namespace log
 } // namespace cmd
