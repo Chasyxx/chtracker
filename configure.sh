@@ -277,39 +277,6 @@ notice "doc dir  : $DOCDIR"
 
 notice "Generating Makefiles"
 
-notice " - ./src/order"
-cat > src/order/Makefile << EOS
-CXX=$CXX
-CXXFLAGS=$CXXFLAGS
-
-all: ../order.oxx
-
-../order.oxx: order.cxx
-	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
-EOS
-
-notice " - ./src/timer"
-cat > src/timer/Makefile << EOS
-CXX=$CXX
-CXXFLAGS=$CXXFLAGS
-
-all: ../timer.oxx
-
-../timer.oxx: timer.cxx
-	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
-EOS
-
-notice " - ./src/channel"
-cat > src/channel/Makefile << EOS
-CXX=$CXX
-CXXFLAGS=$CXXFLAGS
-
-all: ../channel.oxx
-
-../channel.oxx: channel.cxx
-	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
-EOS
-
 notice " - ./src/visual"
 cat > src/visual/Makefile << EOS
 CC=$CC
@@ -385,14 +352,14 @@ visual.o: visual/font.i visual/visual.c
 visual/font.i: visual/font.pl visual/font.charset
 	@\$(MAKE) -C visual font.i
 
-order.oxx: order/order.cxx
-	@\$(MAKE) -C order
+order.oxx: order.cxx
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 
-channel.oxx: channel/channel.cxx
-	@\$(MAKE) -C channel
+channel.oxx: channel.cxx
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 
-timer.oxx: timer/timer.cxx
-	@\$(MAKE) -C timer
+timer.oxx: timer.cxx
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 
 chtracker.oxx: chtracker.cxx screenUpdate.cxx onKeydown.cxx
 	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
