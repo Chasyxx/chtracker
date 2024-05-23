@@ -277,6 +277,17 @@ notice "doc dir  : $DOCDIR"
 
 notice "Generating Makefiles"
 
+notice " - ./src/log"
+cat > src/log/Makefile << EOS
+CXX=$CXX
+CXXFLAGS=$CXXFLAGS
+
+all: ../log.oxx
+
+../log.oxx: log.cxx
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
+EOS
+
 notice " - ./src/order"
 cat > src/order/Makefile << EOS
 CXX=$CXX
@@ -373,7 +384,7 @@ resources.o: resources.rc
 ----EOS
 else
 	cat >> src/Makefile << ----EOS
-../chtracker: timer.oxx order.oxx channel.oxx visual.o chtracker.oxx
+../chtracker: log.oxx timer.oxx order.oxx channel.oxx visual.o chtracker.oxx
 	\$(CCLD) -o \$@ \$^ \$(LIBS)
 ----EOS
 fi
@@ -384,6 +395,9 @@ visual.o: visual/font.i visual/visual.c
 
 visual/font.i: visual/font.pl visual/font.charset
 	@\$(MAKE) -C visual font.i
+
+log.oxx: log/log.cxx
+	@\$(MAKE) -C log
 
 order.oxx: order/order.cxx
 	@\$(MAKE) -C order

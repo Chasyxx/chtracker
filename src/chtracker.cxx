@@ -55,6 +55,7 @@
 #endif
 
 #include "channel.hxx"
+#include "log.hxx"
 #include "main.h"
 #include "order.hxx"
 #include "timer.hxx"
@@ -76,8 +77,8 @@
  *                                *
  **********************************/
 
-using std::filesystem::path;
 using std::string;
+using std::filesystem::path;
 
 /************************************
  *                                  *
@@ -90,13 +91,15 @@ using std::string;
  * Audio *
  *********/
 
-unsigned long /***/ audio_time = 0;
-unsigned char /***/ audio_row = -1;
-unsigned short /**/ audio_pattern = 0;
-bool /************/ audio_isPlaying = false;
-bool /************/ audio_freeze = false;
-bool /************/ audio_isFrozen = true;
-unsigned short /**/ audio_tempo = 960;
+namespace audio {
+unsigned long /***/ time = 0;
+unsigned char /***/ row = -1;
+unsigned short /**/ pattern = 0;
+bool /************/ isPlaying = false;
+bool /************/ freeze = false;
+bool /************/ isFrozen = true;
+unsigned short /**/ tempo = 960;
+} // namespace audio
 
 /**************
  * Music data *
@@ -117,13 +120,15 @@ instrumentStorage instrumentSystem;
  * (G)UI *
  *********/
 
+namespace gui {
 CursorPos /*******/ cursorPosition;
-GlobalMenus /*****/ global_currentMenu = GlobalMenus::main_menu;
-unsigned short /**/ patternMenu_orderIndex = 0;
-char /************/ patternMenu_viewMode = 3;
+GlobalMenus /*****/ currentMenu = GlobalMenus::main_menu;
+unsigned short /**/ patternMenuOrderIndex = 0;
+char /************/ patternMenuViewMode = 3;
 int /*************/ lastWindowWidth;
 int /*************/ lastWindowHeight;
 Sint16 /**********/ waveformDisplay[AUDIO_SAMPLE_COUNT];
+} // namespace gui
 
 /****************
  * File-related *
@@ -141,6 +146,19 @@ path /****/ executableAbolutePath = "";
 path /****/ documentationDirectory = "./doc";
 bool /****/ global_unsavedChanges = false;
 
+/****************
+ * Command line *
+ ****************/
+
+namespace cmd {
+int loglevel = 0;
+// 0 - debug
+// 1 - notice
+// 2 - warning
+// 3 - error
+// 4 - critical
+} // namespace cmd
+
 /*****************************
  *                           *
  *     FUNCTIONS SECTION     *
@@ -149,7 +167,7 @@ bool /****/ global_unsavedChanges = false;
  *****************************/
 
 void onOpenMenuMain() {
-  cursorPosition = {
+  gui::cursorPosition = {
       .x = 0, .y = 0, .subMenu = 0, .selection = {.x = 0, .y = 0}};
 }
 // Quit SDL and terminate with code.
@@ -181,18 +199,18 @@ void write16LE(unsigned char *buffer, unsigned short a, size_t &bufferIdx) {
 void audioTickTimers() {
   timerSystem.tick();
   if (timerSystem.isComplete("row")) {
-    audio_row++;
-    if (audio_row >= orders.at(0)->at(0)->rowCount()) {
-      audio_row = 0;
-      audio_pattern++;
-      if (audio_pattern >= indexes.rowCount()) {
-        audio_pattern = 0;
+    audio::row++;
+    if (audio::row >= orders.at(0)->at(0)->rowCount()) {
+      audio::row = 0;
+      audio::pattern++;
+      if (audio::pattern >= indexes.rowCount()) {
+        audio::pattern = 0;
       }
     }
-    timerSystem.resetTimer("row", 48000 * 60 / audio_tempo);
+    timerSystem.resetTimer("row", 48000 * 60 / audio::tempo);
     for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-      unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
-      row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
+      unsigned char patternIndex = indexes.at(audio::pattern)->at(i);
+      row *currentRow = orders.at(i)->at(patternIndex)->at(audio::row);
       instrumentSystem.at(i)->set_row(*currentRow);
     }
   }
@@ -200,13 +218,13 @@ void audioTickTimers() {
     for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
       instrumentSystem.at(i)->applyFx();
     }
-    timerSystem.resetTimer("effect", 375 * 960 / audio_tempo);
+    timerSystem.resetTimer("effect", 375 * 960 / audio::tempo);
   }
   if (timerSystem.isComplete("arpeggio")) {
     for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
       instrumentSystem.at(i)->applyArpeggio();
     }
-    timerSystem.resetTimer("arpeggio", 1500 * 960 / audio_tempo);
+    timerSystem.resetTimer("arpeggio", 1500 * 960 / audio::tempo);
   }
 }
 
@@ -215,9 +233,12 @@ void audioTickTimers() {
  ******************/
 
 int saveFile(path path) {
+  cmd::log::notice(cmd::loglevel, string("Saving to file ") + path.string());
   std::ofstream file(path, std::ios::out | std::ios::binary);
-  if (!file || !file.is_open())
+  if (!file || !file.is_open()) {
+    cmd::log::error(cmd::loglevel, "Couldn't open the file");
     return 1;
+  }
   unsigned char *buffer = new unsigned char[256];
   // Version
   for (int i = 0; i < 9; i++) {
@@ -228,8 +249,8 @@ int saveFile(path path) {
   buffer[11] = global_patchVersion;
   buffer[12] = global_prereleaseVersion;
 
-  buffer[13] = static_cast<unsigned char>(audio_tempo >> 8);
-  buffer[14] = static_cast<unsigned char>(audio_tempo & 255);
+  buffer[13] = static_cast<unsigned char>(audio::tempo >> 8);
+  buffer[14] = static_cast<unsigned char>(audio::tempo & 255);
 
   buffer[15] = static_cast<unsigned char>(patternLength >> 8);
   buffer[16] = static_cast<unsigned char>(patternLength & 255);
@@ -246,6 +267,7 @@ int saveFile(path path) {
     buffer[i] = 0xff;
   }
   file.write(reinterpret_cast<const char *>(buffer), 256);
+  cmd::log::debug(cmd::loglevel, "Wrote header");
   delete[] buffer;
   for (int i = 0; i < instrumentSystem.inst_count(); i++) {
     buffer = new unsigned char[8];
@@ -260,6 +282,7 @@ int saveFile(path path) {
     file.write(reinterpret_cast<const char *>(buffer), 8);
     delete[] buffer;
   }
+  cmd::log::debug(cmd::loglevel, "Wrote instrument table");
   {
     for (unsigned short orderRowIndex = 0; orderRowIndex < indexes.rowCount();
          orderRowIndex++) {
@@ -271,20 +294,26 @@ int saveFile(path path) {
           try {
             buffer[orderIndex] = indexes.at(orderRowIndex)->at(orderIndex);
           } catch (std::out_of_range &) {
+            cmd::log::warning(cmd::loglevel, "OOR error saving an order index");
             buffer[orderIndex] = 0;
           }
         }
       } catch (std::out_of_range &) {
+        cmd::log::warning(cmd::loglevel, "OOR error");
         continue;
       }
       try {
         file.write(reinterpret_cast<const char *>(buffer),
                    indexes.at(orderRowIndex)->instCount());
       } catch (std::out_of_range &) {
+        cmd::log::debug(
+            cmd::loglevel,
+            "OOR error writing data using index-based instrument count");
         file.write(reinterpret_cast<const char *>(buffer), orders.tableCount());
       }
       delete[] buffer;
     }
+    cmd::log::debug(cmd::loglevel, "Wrote index data");
     for (unsigned char tableIdx = 0; tableIdx < orders.tableCount();
          tableIdx++) {
       instrumentOrderTable *table = orders.at(tableIdx);
@@ -321,9 +350,12 @@ int saveFile(path path) {
           delete[] buffer;
         }
       }
+      cmd::log::debug(cmd::loglevel, "Wrote an order storage table");
     }
+    cmd::log::debug(cmd::loglevel, "Wrote order storage");
   }
   file.close();
+  cmd::log::debug(cmd::loglevel, "Saved successfully");
   return 0;
 }
 
@@ -334,18 +366,23 @@ int loadFile(path filePath) {
     timerSystem.removeTimer("effect");
   if (timerSystem.hasTimer("arpeggio"))
     timerSystem.removeTimer("arpeggio");
-  audio_row = 0;
-  audio_pattern = 0;
-  audio_time = 0;
-  audio_isPlaying = false;
+  audio::row = 0;
+  audio::pattern = 0;
+  audio::time = 0;
+  audio::isPlaying = false;
+  cmd::log::notice(cmd::loglevel,
+                   string("Loading file ") + filePath.string());
   std::ifstream file(filePath, std::ios::in | std::ios::binary);
-  if (!file || !file.is_open())
+  if (!file || !file.is_open()) {
+    cmd::log::error(cmd::loglevel, "Couldn't open the file");
     return 1;
+  }
   unsigned char *buffer = new unsigned char[256];
   file.read(reinterpret_cast<char *>(buffer), 256);
   for (int i = 0; i < 9; i++) {
     if (buffer[i] != "CHTRACKER"[i]) {
       fileMenu_errorText = const_cast<char *>("Not a chTRACKER file");
+      cmd::log::error(cmd::loglevel, fileMenu_errorText);
       delete[] buffer;
       file.close();
       return 1;
@@ -353,12 +390,14 @@ int loadFile(path filePath) {
   }
   if (buffer[9] != global_majorVersion) {
     fileMenu_errorText = const_cast<char *>("Major version mismatch");
+    cmd::log::error(cmd::loglevel, fileMenu_errorText);
     delete[] buffer;
     file.close();
     return 1;
   }
   if (buffer[10] > global_minorVersion) {
     fileMenu_errorText = const_cast<char *>("Newer minor version");
+    cmd::log::error(cmd::loglevel, fileMenu_errorText);
     delete[] buffer;
     file.close();
     return 1;
@@ -379,6 +418,7 @@ int loadFile(path filePath) {
 
   buffer = new unsigned char[local_instrumentCount * 8];
   file.read(reinterpret_cast<char *>(buffer), local_instrumentCount * 8);
+  cmd::log::debug(cmd::loglevel, "Creating insteuments");
   while (instrumentSystem.inst_count() > 0)
     instrumentSystem.remove_inst(instrumentSystem.inst_count() - 1);
   for (unsigned char instrumentIdx = 0; instrumentIdx < local_instrumentCount;
@@ -392,6 +432,7 @@ int loadFile(path filePath) {
   buffer = new unsigned char[local_instrumentCount * local_orderCount];
   file.read(reinterpret_cast<char *>(buffer),
             local_instrumentCount * local_orderCount);
+  cmd::log::debug(cmd::loglevel, "Reading index data");
   while (indexes.rowCount() > 0)
     indexes.removeRow(indexes.rowCount() - 1);
   for (unsigned short orderIdx = 0; orderIdx < local_orderCount; orderIdx++) {
@@ -407,6 +448,7 @@ int loadFile(path filePath) {
   delete[] buffer;
 
   orders.setRowCount(local_rowsPerPattern);
+  cmd::log::debug(cmd::loglevel, "Reading order data");
   while (orders.tableCount() > 0)
     orders.removeTable(orders.tableCount() - 1);
   for (unsigned char tableIdx = 0; tableIdx < local_instrumentCount;
@@ -457,25 +499,33 @@ int loadFile(path filePath) {
       }
     }
     delete[] buffer;
+    cmd::log::debug(cmd::loglevel, "Read an order table");
   }
 
-  audio_tempo = local_rowsPerMinute;
+  cmd::log::debug(cmd::loglevel, "Setting tempo and pattern length");
+  audio::tempo = local_rowsPerMinute;
   patternLength = local_rowsPerPattern;
   file.close();
+  cmd::log::debug(cmd::loglevel, "File read successfully");
   return 0;
 }
 
 int renderTo(path path) {
-  if (orders.tableCount() < 1)
+  cmd::log::notice(cmd::loglevel, string("Rendering to file ") + path.string());
+  if (orders.tableCount() < 1) {
+    cmd::log::notice(cmd::loglevel, "Refusing to render without instruments");
     return 1;
+  }
   std::ofstream file(path, std::ios::out | std::ios::binary);
-  if (!file || !file.is_open())
+  if (!file || !file.is_open()) {
+    cmd::log::error(cmd::loglevel, "Couldn't open the file");
     return 1;
+  }
   // Estimate the song length
   size_t songLength = 48000 * 120;
   songLength *= patternLength;
   songLength *= indexes.rowCount();
-  songLength /= audio_tempo;
+  songLength /= audio::tempo;
   // Make a buffer whose length is the file size
   size_t fileSize = (songLength * 2) + 44;
   unsigned char *buffer = new unsigned char[fileSize];
@@ -517,10 +567,11 @@ int renderTo(path path) {
     // Data chunk length
     write32LE(buffer, fileSize - 44, headerIdx);
   }
-  audio_pattern = 0;
-  audio_row = 0;
-  audio_freeze = true;
-  while (!audio_isFrozen) {
+  cmd::log::debug(cmd::loglevel, "Header written");
+  audio::pattern = 0;
+  audio::row = 0;
+  audio::freeze = true;
+  while (!audio::isFrozen) {
   };
 
   if (timerSystem.hasTimer("row"))
@@ -529,15 +580,15 @@ int renderTo(path path) {
     timerSystem.removeTimer("effect");
   if (timerSystem.hasTimer("arpeggio"))
     timerSystem.removeTimer("arpeggio");
-  timerSystem.addTimer("row", 48000 * 60 / audio_tempo);
-  timerSystem.addTimer("effect", 375 * 960 / audio_tempo);
-  timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tempo);
+  timerSystem.addTimer("row", 48000 * 60 / audio::tempo);
+  timerSystem.addTimer("effect", 375 * 960 / audio::tempo);
+  timerSystem.addTimer("arpeggio", 1500 * 960 / audio::tempo);
   row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
   for (char i = 0; i < 4; i++)
     dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
   for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-    unsigned char patternIndex = indexes.at(audio_pattern)->at(i);
-    row *currentRow = orders.at(i)->at(patternIndex)->at(audio_row);
+    unsigned char patternIndex = indexes.at(audio::pattern)->at(i);
+    row *currentRow = orders.at(i)->at(patternIndex)->at(audio::row);
     instrumentSystem.at(i)->set_row(dummyRow);
     instrumentSystem.at(i)->set_row(*currentRow);
   }
@@ -562,10 +613,11 @@ int renderTo(path path) {
     timerSystem.removeTimer("effect");
   if (timerSystem.hasTimer("arpeggio"))
     timerSystem.removeTimer("arpeggio");
-  audio_freeze = false;
+  audio::freeze = false;
   file.write(reinterpret_cast<char *>(buffer), fileSize);
   file.close();
   delete[] buffer;
+  cmd::log::debug(cmd::loglevel, "Rendered successfully");
   return 0;
 }
 
@@ -578,32 +630,32 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
   int samples = len / 2;
   Sint16 *data = reinterpret_cast<Sint16 *>(stream);
 
-  if (audio_freeze) {
+  if (audio::freeze) {
     for (int i = 0; i < samples; i++) {
       data[i] /= 2;
     }
-    audio_isFrozen = true;
+    audio::isFrozen = true;
     return;
   }
-  audio_isFrozen = false;
+  audio::isFrozen = false;
 
-  if (global_currentMenu == GlobalMenus::main_menu) {
+  if (gui::currentMenu == GlobalMenus::main_menu) {
     for (unsigned int i = 0; i < static_cast<unsigned int>(samples); i++) {
-      unsigned long t = audio_time + i;
+      unsigned long t = audio::time + i;
       data[i] =
           (-(3 * t >> 5 & t >> 14 & t >> 6) * t << 1) | (t * 5 * 128 & t << 1);
     }
-    audio_time += samples;
+    audio::time += samples;
     return;
   }
 
-  if (!audio_freeze && audio_isPlaying && orders.tableCount() > 0) {
+  if (!audio::freeze && audio::isPlaying && orders.tableCount() > 0) {
     if (!timerSystem.hasTimer("row"))
-      timerSystem.addTimer("row", 48000 * 60 / audio_tempo);
+      timerSystem.addTimer("row", 48000 * 60 / audio::tempo);
     if (!timerSystem.hasTimer("effect"))
-      timerSystem.addTimer("effect", 375 * 960 / audio_tempo);
+      timerSystem.addTimer("effect", 375 * 960 / audio::tempo);
     if (!timerSystem.hasTimer("arpeggio"))
-      timerSystem.addTimer("arpeggio", 1500 * 960 / audio_tempo);
+      timerSystem.addTimer("arpeggio", 1500 * 960 / audio::tempo);
 
     for (unsigned int audioIdx = 0;
          audioIdx < static_cast<unsigned int>(samples); audioIdx++) {
@@ -617,20 +669,20 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
                                     instrumentSystem.at(instrumentIdx)->gen()) /
                                     4));
       }
-      data[audioIdx] = waveformDisplay[audioIdx] = sample;
+      data[audioIdx] = gui::waveformDisplay[audioIdx] = sample;
       audioTickTimers();
-      audio_time++;
+      audio::time++;
     }
   } else {
-    if (!audio_freeze) {
+    if (!audio::freeze) {
       if (timerSystem.hasTimer("row"))
         timerSystem.removeTimer("row");
       if (timerSystem.hasTimer("effect"))
         timerSystem.removeTimer("effect");
       if (timerSystem.hasTimer("arpeggio"))
         timerSystem.removeTimer("arpeggio");
-      audio_row = 0;
-      audio_pattern = patternMenu_orderIndex;
+      audio::row = 0;
+      audio::pattern = gui::patternMenuOrderIndex;
       row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
       for (char i = 0; i < 4; i++)
         dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
@@ -640,7 +692,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
     }
     for (int i = 0; i < samples; i++) {
       data[i] /= 2;
-      waveformDisplay[i] = 0;
+      gui::waveformDisplay[i] = 0;
     }
   }
 }
@@ -690,7 +742,7 @@ void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
  *********************************/
 
 void setLimits(unsigned int &limitX, unsigned int &limitY) {
-  switch (global_currentMenu) {
+  switch (gui::currentMenu) {
   case GlobalMenus::instrument_menu: {
     limitX = 0;
     limitY = instrumentSystem.inst_count() - 1;
@@ -702,14 +754,14 @@ void setLimits(unsigned int &limitX, unsigned int &limitY) {
     break;
   }
   case GlobalMenus::order_management_menu: {
-    if (cursorPosition.subMenu == 1 && orders.tableCount() > 0) {
+    if (gui::cursorPosition.subMenu == 1 && orders.tableCount() > 0) {
       limitX = orders.tableCount() - 1;
       limitY = 0;
       break;
     }
     limitY = orders.tableCount() - 1;
     if (orders.tableCount() > 0)
-      limitX = orders.at(cursorPosition.y)->order_count() - 1;
+      limitX = orders.at(gui::cursorPosition.y)->order_count() - 1;
     else
       limitX = 0;
     break;
@@ -720,7 +772,7 @@ void setLimits(unsigned int &limitX, unsigned int &limitY) {
       break;
     }
     limitX = patternMenu_instrumentVariableCount[static_cast<size_t>(
-                 patternMenu_viewMode)] *
+                 gui::patternMenuViewMode)] *
                  orders.tableCount() -
              1;
     limitY = orders.at(0)->at(0)->rowCount() - 1;
@@ -742,53 +794,53 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
   unsigned int limitX = INT_MAX;
   unsigned int limitY = INT_MAX;
   setLimits(limitX, limitY);
-  if (cursorPosition.x > limitX)
-    cursorPosition.x = limitX;
-  if (cursorPosition.y > limitY)
-    cursorPosition.y = limitY;
+  if (gui::cursorPosition.x > limitX)
+    gui::cursorPosition.x = limitX;
+  if (gui::cursorPosition.y > limitY)
+    gui::cursorPosition.y = limitY;
   const Uint8 *currentKeyStates = SDL_GetKeyboardState(NULL);
   switch (event->type) {
   case SDL_QUIT:
     quit = 1;
     break;
   case SDL_TEXTINPUT: {
-    if (global_currentMenu == GlobalMenus::save_file_menu)
+    if (gui::currentMenu == GlobalMenus::save_file_menu)
       saveFileMenu_fileName += event->text.text;
-    if (global_currentMenu == GlobalMenus::render_menu)
+    if (gui::currentMenu == GlobalMenus::render_menu)
       renderMenu_fileName += event->text.text;
     break;
   }
   case SDL_KEYDOWN: {
-    onSDLKeyDown(event, quit, global_currentMenu, cursorPosition,
-                 saveFileMenu_fileName, renderMenu_fileName,
-                 fileMenu_directoryPath, fileMenu_errorText,
-                 global_unsavedChanges, limitX, limitY, audio_freeze,
-                 audio_isFrozen, patternMenu_orderIndex, patternMenu_viewMode,
-                 audio_isPlaying, instrumentSystem, indexes, orders,
-                 audio_pattern, patternLength, currentKeyStates, audio_tempo);
+    onSDLKeyDown(
+        event, quit, gui::currentMenu, gui::cursorPosition,
+        saveFileMenu_fileName, renderMenu_fileName, fileMenu_directoryPath,
+        fileMenu_errorText, global_unsavedChanges, limitX, limitY,
+        audio::freeze, audio::isFrozen, gui::patternMenuOrderIndex,
+        gui::patternMenuViewMode, audio::isPlaying, instrumentSystem, indexes,
+        orders, audio::pattern, patternLength, currentKeyStates, audio::tempo);
     break;
   }
   case SDL_KEYUP: {
     SDL_Keysym ks = event->key.keysym;
     SDL_Keycode code = ks.sym;
-    if (global_currentMenu == GlobalMenus::file_menu) {
+    if (gui::currentMenu == GlobalMenus::file_menu) {
       if (code == 's')
-        global_currentMenu = GlobalMenus::save_file_menu;
+        gui::currentMenu = GlobalMenus::save_file_menu;
       else if (code == 'r') {
         if (orders.tableCount() < 1)
           fileMenu_errorText =
               const_cast<char *>("Refusing to render without instruments");
         else
-          global_currentMenu = GlobalMenus::render_menu;
+          gui::currentMenu = GlobalMenus::render_menu;
       }
     }
   }
   }
   setLimits(limitX, limitY);
-  if (cursorPosition.x > limitX)
-    cursorPosition.x = limitX;
-  if (cursorPosition.y > limitY)
-    cursorPosition.y = limitY;
+  if (gui::cursorPosition.x > limitX)
+    gui::cursorPosition.x = limitX;
+  if (gui::cursorPosition.y > limitY)
+    gui::cursorPosition.y = limitY;
 }
 
 /*************************************************************
@@ -809,30 +861,69 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
     while (SDL_PollEvent(&event)) {
       sdlEventHandler(&event, quit);
     }
-    screenUpdate(renderer, window, lastWindowWidth, lastWindowHeight,
-                 global_currentMenu, audio_isPlaying, waveformDisplay,
-                 global_unsavedChanges, cursorPosition, indexes, audio_pattern,
-                 audio_row, orders, patternMenu_orderIndex,
-                 patternMenu_viewMode, instrumentSystem, audio_tempo,
+    screenUpdate(renderer, window, gui::lastWindowWidth, gui::lastWindowHeight,
+                 gui::currentMenu, audio::isPlaying, gui::waveformDisplay,
+                 global_unsavedChanges, gui::cursorPosition, indexes,
+                 audio::pattern, audio::row, orders, gui::patternMenuOrderIndex,
+                 gui::patternMenuViewMode, instrumentSystem, audio::tempo,
                  patternLength, fileMenu_errorText, fileMenu_directoryPath,
-                 saveFileMenu_fileName, renderMenu_fileName, documentationDirectory);
+                 saveFileMenu_fileName, renderMenu_fileName,
+                 documentationDirectory);
     SDL_RenderPresent(renderer);
     if (quit) {
       if (global_unsavedChanges &&
-          global_currentMenu != GlobalMenus::quit_connfirmation_menu) {
+          gui::currentMenu != GlobalMenus::quit_connfirmation_menu) {
         quit = 0;
-        global_currentMenu = GlobalMenus::quit_connfirmation_menu;
+        gui::currentMenu = GlobalMenus::quit_connfirmation_menu;
       } else
         break;
     }
   }
 }
 
-int main(int argc, char *argv[]) {
+void printHelp() {
+#define pH(x) std::cout << x
+  pH("Usage: " << executableAbolutePath << " [-l 0-4] [-v] [PATH]"
+               << "\n\n");
+  pH("-l --loglevel: Change loglevel. Lower is more verbose"
+     << "\n");
+  pH("-v --verbose : increase verbosity"
+     << "\n\n");
+  pH("if PATH is included, load it automatically." << std::endl);
+#undef pH
+}
 
+void processCommandLineArgument(const char **argv, std::string &argument,
+                                int &p) {
+  if (argument.at(0) == '-') {
+    if (argument == "--loglevel" || argument == "-l") {
+      cmd::loglevel = atoi(argv[++p]);
+    } else if (argument == "--verbose" || argument == "-v") {
+      if (cmd::loglevel > 0)
+        cmd::loglevel--;
+    } else if (argument == "--help" || argument == "-?" || argument == "-h") {
+      printHelp();
+      quit(0);
+    }
+  } else {
+    path loadFilePath = argv[p];
+    if (loadFile(loadFilePath)) {
+      gui::currentMenu = GlobalMenus::file_menu;
+      onOpenMenuMain();
+      if (fileMenu_errorText[0] == 0)
+        fileMenu_errorText = const_cast<char *>("Couldn't auto-load file");
+    } else {
+      gui::currentMenu = GlobalMenus::pattern_menu;
+      onOpenMenuMain();
+    }
+  }
+}
+
+int main(int argc, char *argv[]) {
+  cmd::log::notice(cmd::loglevel, "Welcome to chTRACKER!");
 #if defined(_POSIX)
   if (std::strcmp(std::getenv("USER"), "root") == 0) {
-    std::cerr << "Please don't open this program as root" << std::endl;
+    cmd::log::warning(cmd::loglevel, "Please don't open this program as root");
     quit(1);
   }
 #endif
@@ -840,50 +931,55 @@ int main(int argc, char *argv[]) {
   {
     int protector = 0;
     executableAbolutePath = std::filesystem::read_symlink("/proc/self/exe");
-    while(std::filesystem::is_symlink(executableAbolutePath)) {
-      executableAbolutePath = std::filesystem::read_symlink(executableAbolutePath);
+    while (std::filesystem::is_symlink(executableAbolutePath)) {
+      executableAbolutePath =
+          std::filesystem::read_symlink(executableAbolutePath);
       protector++;
-      if(protector>=64) {std::cerr << "Why so many symlinks!?" << std::endl; break;}
+      if (protector >= 64) {
+        cmd::log::warning(cmd::loglevel,
+                          "Too many symlinks to process executable location");
+        break;
+      }
     }
   }
   documentationDirectory = executableAbolutePath.parent_path() / "doc";
 #elif defined(_WIN32)
-  {
-    executableAbolutePath = _pgmptr;
-  }
+  { executableAbolutePath = _pgmptr; }
   documentationDirectory = executableAbolutePath.parent_path() / "doc";
 #endif
-  std::cout << documentationDirectory << std::endl;
+  cmd::log::debug(cmd::loglevel,
+                  "The program path is " + executableAbolutePath.string());
+  cmd::log::debug(cmd::loglevel,
+                  "The dynamic docdir is " + documentationDirectory.string());
+  cmd::log::debug(cmd::loglevel, "Starting SDL");
   if (SDL_InitSubSystem(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) <
       0) {
-    std::cerr << "Failed to start SDL! " << SDL_GetError() << std::endl;
+    cmd::log::critical(string("Failed to start SDL: ") + SDL_GetError());
     quit(1);
   }
-  int windowWidth = lastWindowWidth = 1024,
-      windowHeight = lastWindowHeight = 512;
+  int windowWidth = gui::lastWindowWidth = 1024,
+      windowHeight = gui::lastWindowHeight = 512;
+  cmd::log::debug(cmd::loglevel, string("Creating window"));
   SDL_Window *window = SDL_CreateWindow(
       "ChTracker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth,
       windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   if (window == NULL) {
-    std::cerr << "Failed to create a window! " << SDL_GetError() << std::endl;
+    cmd::log::critical(string("Failed to create a window: ") + SDL_GetError());
     quit(1);
   }
+  cmd::log::debug(cmd::loglevel, string("Creating renderer"));
   SDL_Renderer *renderer =
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   if (renderer == NULL) {
-    std::cerr << "Failed to create a renderer! " << SDL_GetError() << std::endl;
+    cmd::log::critical(string("Failed to create a renderer: ") +
+                       SDL_GetError());
     quit(1);
   }
   init(/*renderer, */ window);
-  if(argc>1) {
-    path loadFilePath = argv[1];
-    if(loadFile(loadFilePath)) {
-      global_currentMenu = GlobalMenus::file_menu;
-      onOpenMenuMain();
-      if(fileMenu_errorText[0] == 0) fileMenu_errorText = const_cast<char*>("Couldn't auto-load file");
-    } else {
-      global_currentMenu = GlobalMenus::pattern_menu;
-      onOpenMenuMain();
+  if (argc > 1) {
+    for (int p = 1; p < argc; p++) {
+      string arg(argv[p]);
+      processCommandLineArgument(const_cast<const char **>(argv), arg, p);
     }
   }
   sdlLoop(renderer, window);
