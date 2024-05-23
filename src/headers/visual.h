@@ -25,6 +25,11 @@
 #ifndef LIBRARY_VISUAL
 #define LIBRARY_VISUAL
 
+#ifdef __cplusplus
+// Make sure this works in C++
+extern "C" {
+#endif
+
 #include <SDL2/SDL_render.h>
 
 extern const int visual_font[];
@@ -115,4 +120,9 @@ const SDL_Color visual_cyanText =    {.r=0,   .g=255, .b=255, .a=255};
 const SDL_Color visual_whiteText =   {.r=255, .g=255, .b=255, .a=255};
 const SDL_Color visual_greyText =    {.r=128, .g=128, .b=128, .a=255};
 
+#endif
+
+#ifdef __cplusplus
+// Finish the `extern "C"`
+}
 #endif

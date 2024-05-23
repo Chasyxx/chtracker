@@ -37,9 +37,7 @@
 
 #include "main.h"
 
-extern "C" {
 #include "visual.h"
-}
 #include "channel.hxx"
 #include "order.hxx"
 

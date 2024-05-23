@@ -77,7 +77,7 @@ while [ $# -gt 0 ]; do
 	case $1 in
 		--clean)
 			make clean
-			rm -v ./Makefile ./src/Makefile ./src/{visual,order,channel,timer}/Makefile
+			rm -v ./{,src/,src/visual/}Makefile
 			exit 0
 			;;
 		--disable-werror)
@@ -322,9 +322,8 @@ install: ../chtracker ../doc/help.txt
 	install -D -m 644 ../doc/help.txt \$(DOCDIR)/chtracker/help.txt
 
 clean:
-	\$(CLEAN) ./*.o
-	\$(CLEAN) ./*/*.o
-	\$(CLEAN) ./*.oxx
+	\$(CLEAN) ./**/*.o
+	\$(CLEAN) ./**/*.oxx
 	\$(CLEAN) ./visual/font.i
 	\$(CLEAN) ../chtracker
 	\$(CLEAN) ../chtracker.exe
@@ -332,7 +331,7 @@ clean:
 EOS
 if [ $ICON -eq 1 ]; then
 	cat >> src/Makefile << ----EOS
-../chtracker: timer.oxx order.oxx channel.oxx visual.o resources.o chtracker.oxx
+../chtracker: log.oxx timer.oxx order.oxx channel.oxx visual.o resources.o chtracker.oxx
 	\$(CCLD) -o \$@ \$^ \$(LIBS)
 
 resources.o: resources.rc
@@ -340,7 +339,7 @@ resources.o: resources.rc
 ----EOS
 else
 	cat >> src/Makefile << ----EOS
-../chtracker: timer.oxx order.oxx channel.oxx visual.o chtracker.oxx
+../chtracker: log.oxx timer.oxx order.oxx channel.oxx visual.o chtracker.oxx
 	\$(CCLD) -o \$@ \$^ \$(LIBS)
 ----EOS
 fi
@@ -351,6 +350,9 @@ visual.o: visual/font.i visual/visual.c
 
 visual/font.i: visual/font.pl visual/font.charset
 	@\$(MAKE) -C visual font.i
+
+log.oxx: log.cxx
+	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 
 order.oxx: order.cxx
 	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
