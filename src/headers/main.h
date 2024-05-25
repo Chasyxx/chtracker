@@ -72,7 +72,8 @@ enum class GlobalMenus {
   file_menu,
   save_file_menu,
   render_menu,
-  quit_connfirmation_menu
+  quit_confirmation_menu,
+  log_menu
 };
 
 struct Selection {

@@ -119,7 +119,7 @@ instrumentStorage instrumentSystem;
 /*********
  * (G)UI *
  *********/
- 
+
 namespace gui {
 CursorPos /*******/ cursorPosition;
 GlobalMenus /*****/ currentMenu = GlobalMenus::main_menu;
@@ -145,18 +145,6 @@ string /**/ renderMenu_fileName = "render.wav";
 path /****/ executableAbolutePath = "";
 path /****/ documentationDirectory = "./doc";
 bool /****/ global_unsavedChanges = false;
-
-/****************
- * Command line *
- ****************/
-
-namespace cmd {
-// 0 - debug
-// 1 - notice
-// 2 - warning
-// 3 - error
-// 4 - critical
-} // namespace cmd
 
 /*****************************
  *                           *
@@ -232,7 +220,7 @@ void audioTickTimers() {
  ******************/
 
 int saveFile(path path) {
-  cmd::log::notice(string("Saving to file ") + path.string());
+  cmd::log::notice("Saving to file {}", path.string());
   std::ofstream file(path, std::ios::out | std::ios::binary);
   if (!file || !file.is_open()) {
     cmd::log::error("Couldn't open the file");
@@ -349,7 +337,7 @@ int saveFile(path path) {
           delete[] buffer;
         }
       }
-      cmd::log::debug("Wrote an order storage table");
+      cmd::log::debug("Wrote order table for instrument {}", tableIdx);
     }
     cmd::log::debug("Wrote order storage");
   }
@@ -369,7 +357,7 @@ int loadFile(path filePath) {
   audio::pattern = 0;
   audio::time = 0;
   audio::isPlaying = false;
-  cmd::log::notice(string("Loading file ") + filePath.string());
+  cmd::log::notice("Loading file {}", filePath.string());
   std::ifstream file(filePath, std::ios::in | std::ios::binary);
   if (!file || !file.is_open()) {
     cmd::log::error("Couldn't open the file");
@@ -416,7 +404,7 @@ int loadFile(path filePath) {
 
   buffer = new unsigned char[local_instrumentCount * 8];
   file.read(reinterpret_cast<char *>(buffer), local_instrumentCount * 8);
-  cmd::log::debug("Creating insteuments");
+  cmd::log::debug("Creating instruments");
   while (instrumentSystem.inst_count() > 0)
     instrumentSystem.remove_inst(instrumentSystem.inst_count() - 1);
   for (unsigned char instrumentIdx = 0; instrumentIdx < local_instrumentCount;
@@ -497,7 +485,7 @@ int loadFile(path filePath) {
       }
     }
     delete[] buffer;
-    cmd::log::debug("Read an order table");
+    cmd::log::debug("Read order table for instrument {}", tableIdx);
   }
 
   cmd::log::debug("Setting tempo and pattern length");
@@ -509,7 +497,7 @@ int loadFile(path filePath) {
 }
 
 int renderTo(path path) {
-  cmd::log::notice(string("Rendering to file ") + path.string());
+  cmd::log::notice("Rendering to file {}", path.string());
   if (orders.tableCount() < 1) {
     cmd::log::notice("Refusing to render without instruments");
     return 1;
@@ -565,7 +553,7 @@ int renderTo(path path) {
     // Data chunk length
     write32LE(buffer, fileSize - 44, headerIdx);
   }
-  cmd::log::debug("Header written");
+  cmd::log::debug("WAV header written");
   audio::pattern = 0;
   audio::row = 0;
   audio::freeze = true;
@@ -728,7 +716,7 @@ void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
   audioSpec.callback = audioCallback;
 
   if (SDL_OpenAudio(&audioSpec, NULL) < 0) {
-    std::cerr << "Couldn't open audio! " << SDL_GetError() << std::endl;
+    cmd::log::critical("Couldn't open audio: {}", SDL_GetError());
     quit(1);
   }
   indexes.addRow();
@@ -870,9 +858,9 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
     SDL_RenderPresent(renderer);
     if (quit) {
       if (global_unsavedChanges &&
-          gui::currentMenu != GlobalMenus::quit_connfirmation_menu) {
+          gui::currentMenu != GlobalMenus::quit_confirmation_menu) {
         quit = 0;
-        gui::currentMenu = GlobalMenus::quit_connfirmation_menu;
+        gui::currentMenu = GlobalMenus::quit_confirmation_menu;
       } else
         break;
     }
@@ -960,7 +948,7 @@ int main(int argc, char *argv[]) {
   }
 #if defined(_POSIX)
   if (std::strcmp(std::getenv("USER"), "root") == 0) {
-    cmd::log::warning("Please don't open this program as root");
+    cmd::log::warning("Please don't run this program as root");
     quit(1);
   }
 #endif
@@ -970,25 +958,24 @@ int main(int argc, char *argv[]) {
   cmd::log::debug("Starting SDL");
   if (SDL_InitSubSystem(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) <
       0) {
-    cmd::log::critical(string("Failed to start SDL: ") + SDL_GetError());
+    cmd::log::critical("Failed to start SDL: {}", SDL_GetError());
     quit(1);
   }
   int windowWidth = gui::lastWindowWidth = 1024,
       windowHeight = gui::lastWindowHeight = 512;
-  cmd::log::debug(string("Creating window"));
+  cmd::log::debug("Creating window");
   SDL_Window *window = SDL_CreateWindow(
       "ChTracker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth,
       windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   if (window == NULL) {
-    cmd::log::critical(string("Failed to create a window: ") + SDL_GetError());
+    cmd::log::critical("Failed to create a window: ", SDL_GetError());
     quit(1);
   }
-  cmd::log::debug(string("Creating renderer"));
+  cmd::log::debug("Creating renderer");
   SDL_Renderer *renderer =
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   if (renderer == NULL) {
-    cmd::log::critical(string("Failed to create a renderer: ") +
-                       SDL_GetError());
+    cmd::log::critical("Failed to create a renderer: {}", SDL_GetError());
     quit(1);
   }
   init(/*renderer, */ window);

@@ -203,6 +203,11 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     onOpenMenu(cursorPosition);
     break;
   }
+  case SDLK_F8: {
+    currentMenu = GlobalMenus::log_menu;
+    onOpenMenu(cursorPosition);
+    break;
+  }
   case SDLK_UP: {
     if (cursorPosition.y > 0)
       cursorPosition.y--;

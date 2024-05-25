@@ -35,11 +35,12 @@
 #include <iostream>
 #include <string>
 
+#include "log.hxx"
 #include "main.h"
 
-#include "visual.h"
 #include "channel.hxx"
 #include "order.hxx"
+#include "visual.h"
 
 /**************************************
  *                                    *
@@ -205,9 +206,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                   const unsigned short currentlyViewedOrder,
                   const char currentViewMode, instrumentStorage &instruments,
                   const unsigned short tempo, const unsigned short paternLength,
-                  char *& errorText, const std::filesystem::path &fileMenuDirectory,
+                  char *&errorText,
+                  const std::filesystem::path &fileMenuDirectory,
                   const std::string saveFileName,
-                  const std::string renderFileName, const std::filesystem::path& docPath) {
+                  const std::string renderFileName,
+                  const std::filesystem::path &docPath) {
   long millis = SDL_GetTicks64();
   int windowWidth, windowHeight;
   SDL_GetWindowSize(window, &windowWidth, &windowHeight);
@@ -359,14 +362,18 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                   visual_whiteText, currentMenu == GlobalMenus::file_menu,
                   windowWidth / 8);
     xOffset += 5 * 8;
+    text_drawText(renderer, const_cast<char *>("Log"), 1, xOffset, 0,
+                  visual_whiteText, currentMenu == GlobalMenus::log_menu,
+                  windowWidth / 8);
+    xOffset += 4 * 8;
     if (hasUnsavedChanges)
       text_drawText(renderer, const_cast<char *>("Unsaved changes"), 1, xOffset,
                     0,
-                    currentMenu == GlobalMenus::quit_connfirmation_menu
+                    currentMenu == GlobalMenus::quit_confirmation_menu
                         ? visual_redText
                         : visual_yellowText,
                     currentMenu == GlobalMenus::file_menu ||
-                        currentMenu == GlobalMenus::quit_connfirmation_menu,
+                        currentMenu == GlobalMenus::quit_confirmation_menu,
                     windowWidth / 8);
     // l+=6;
     // text_drawText(renderer, const_cast<char *>("Order"), 1, l*8, 0,
@@ -963,7 +970,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     cursorPosition.y == 1, fontTileCountW);
       break;
     }
-    /****************************************************
+    /*****************************************************
      *                                                   *
      *                     FILE MENU                     *
      *                                                   *
@@ -988,8 +995,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     0, 96, visual_whiteText, 0, fontTileCountW);
       text_drawText(
           renderer,
-          const_cast<char *>((fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()), 2,
-          0, 112, visual_whiteText, 0, INT_MAX);
+          const_cast<char *>(
+              (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
+          2, 0, 112, visual_whiteText, 0, INT_MAX);
       unsigned short y = 128;
       int i = 0;
       int initialEntry = std::max(0, static_cast<int>(cursorPosition.y) -
@@ -1038,8 +1046,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(
           renderer,
-          const_cast<char *>((fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()), 2,
-          160, 16, visual_whiteText, 0, fontTileCountW - 10);
+          const_cast<char *>(
+              (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
+          2, 160, 16, visual_whiteText, 0, fontTileCountW - 10);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
                       const_cast<char *>("That file exists, are you sure?"), 2,
@@ -1060,8 +1069,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     visual_whiteText, 0, fontTileCountW);
       text_drawText(
           renderer,
-          const_cast<char *>((fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()), 2,
-          16 * 13, 16, visual_whiteText, 0, fontTileCountW - 13);
+          const_cast<char *>(
+              (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
+          2, 16 * 13, 16, visual_whiteText, 0, fontTileCountW - 13);
       if (cursorPosition.subMenu == 1)
         text_drawText(renderer,
                       const_cast<char *>("That file exists, are you sure?"), 2,
@@ -1080,7 +1090,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
        * "Unsaved changes" menu *
        *************************/
 
-    case GlobalMenus::quit_connfirmation_menu: {
+    case GlobalMenus::quit_confirmation_menu: {
       text_drawText(renderer, const_cast<char *>("Unsaved changes"), 2,
                     (windowWidth - (15 * 16)) / 2, windowHeight / 2 - 16,
                     visual_redText, 0, fontTileCountW);
@@ -1091,6 +1101,59 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       text_drawText(renderer, const_cast<char *>("Press F7 to go to file menu"),
                     2, (windowWidth - (27 * 16)) / 2, windowHeight / 2 + 16,
                     visual_whiteText, 0, fontTileCountW);
+      break;
+    }
+
+      /****************************************************
+       *                                                  *
+       *                     LOG MENU                     *
+       *                                                  *
+       ***************************************************/
+
+    case GlobalMenus::log_menu: {
+      size_t logCount = cmd::log::logs.size();
+      for (size_t i = 0; i < fontTileCountH * 2; i++) {
+        size_t index = i + cursorPosition.y;
+        ssize_t logIndex = logCount - index - 1;
+        if (logIndex < 0)
+          break;
+        int y = i * 8 + 16;
+        if (y >= windowHeight)
+          break;
+        struct log &l = cmd::log::logs.at(logIndex);
+        bool invert = l.printed && (millis & 1024) == 1024;
+        switch (l.severity) {
+        case 0: {
+          text_drawText(renderer, const_cast<char *>("DEBUG"), 1, 0, y,
+                        visual_whiteText, invert, 5);
+          break;
+        }
+        case 1: {
+          text_drawText(renderer, const_cast<char *>("NOTE "), 1, 0, y,
+                        visual_blueText, invert, 5);
+          break;
+        }
+        case 2: {
+          text_drawText(renderer, const_cast<char *>(" WARN"), 1, 0, y,
+                        visual_yellowText, invert, 5);
+          break;
+        }
+        case 3: {
+          text_drawText(renderer, const_cast<char *>("ERROR"), 1, 0, y,
+                        visual_redText, invert, 5);
+          break;
+        }
+        case 4: {
+          text_drawText(renderer, const_cast<char *>("CRIT!"), 1, 0, y,
+                        visual_magentaText, invert, 5);
+          break;
+        }
+        default:
+          break;
+        }
+        text_drawText(renderer, const_cast<char *>(l.msg.c_str()), 1, 48, y,
+                      l.printed?visual_whiteText:visual_greyText, 0, windowWidth / 8 - 6);
+      }
     }
     }
   }

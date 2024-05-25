@@ -18,39 +18,12 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#include <iostream>
-#include <string>
 #include <vector>
-
-static constexpr char const *severityStrings[] = {
-    "\x1b[1m[debug]\x1b[0m", "\x1b[1;34m[note ]\x1b[0m",
-    "\x1b[1;33m[ WARN]\x1b[0m", "\x1b[1;31m[ERROR]\x1b[0m",
-    "\x1b[1;35m[CRIT!]\x1b[0m"};
-
-struct log {
-  std::string msg;
-  char severity;
-  bool printed;
-};
+#include "log.hxx"
 
 namespace cmd {
 namespace log {
 int level = 1;
 std::vector<struct log> logs;
-void log(int severity, std::string msg) {
-  if (level <= severity) {
-    logs.push_back(
-        {.msg = msg, .severity = static_cast<char>(severity), .printed = true});
-    std::cerr << severityStrings[severity] << " " << msg << std::endl;
-  } else
-    logs.push_back({.msg = msg,
-                    .severity = static_cast<char>(severity),
-                    .printed = false});
-}
-void debug(std::string msg) /*****/ { log(0, msg); }
-void notice(std::string msg) /****/ { log(1, msg); }
-void warning(std::string msg) /***/ { log(2, msg); }
-void error(std::string msg) /*****/ { log(3, msg); }
-void critical(std::string msg) /**/ { log(4, msg); }
 } // namespace log
 } // namespace cmd

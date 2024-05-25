@@ -258,7 +258,7 @@ if ! exists $DOCDIR; then
 fi
 
 if [ $AUTODEFINE_CXX -eq 1 ]; then
-	CXXFLAGS="$CFLAGS -std=c++17"
+	CXXFLAGS="$CFLAGS -std=c++20"
 else if ! on $CXXFLAGS; then
 	CXXFLAGS=$CFLAGS
 fi
@@ -322,6 +322,8 @@ install: ../chtracker ../doc/help.txt
 	install -D -m 644 ../doc/help.txt \$(DOCDIR)/chtracker/help.txt
 
 clean:
+	\$(CLEAN) ./*.o
+	\$(CLEAN) ./*.oxx
 	\$(CLEAN) ./**/*.o
 	\$(CLEAN) ./**/*.oxx
 	\$(CLEAN) ./visual/font.i
