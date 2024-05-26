@@ -32,22 +32,8 @@ jobs:
     needs: linux
     steps:
       - uses: actions/checkout@v4
-      - name: Install MinGW-w64
-        run: sudo apt-get install mingw-w64
-
-      - name: dependencies- Build SDL2
-        run: |
-          git clone -b SDL2 https://github.com/libsdl-org/SDL.git ../SDL
-          mkdir ../libsdl
-          mkdir ../SDL/build
-          cd ../SDL/build
-          ../configure --host=x86_64-w64-mingw32 --prefix=$PWD/../../libsdl --disable-shared --enable-static
-          make
-          make install
-          cd ../..
-
-      - name: Install CMake
-        run: sudo apt-get install cmake
+      - name: Install MinGW-w64 and CMake
+        run: sudo apt-get install mingw-w64 cmake
 
       - name: dependencies- Build libfmt
         run: |
@@ -67,6 +53,17 @@ jobs:
           make
           make install
           cd ../../chtracker
+
+      - name: dependencies- Build SDL2
+        run: |
+          git clone -b SDL2 https://github.com/libsdl-org/SDL.git ../SDL
+          mkdir ../libsdl
+          mkdir ../SDL/build
+          cd ../SDL/build
+          ../configure --host=x86_64-w64-mingw32 --prefix=$PWD/../../libsdl --disable-shared --enable-static
+          make
+          make install
+          cd ../..
 
       - name: configure for Windows cross-compilation
         run: CFLAGS="-O2 -I$PWD/../libsdl/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(../libsdl/bin/sdl2-config --libs) -L$PWD/../../libfmt/ -lfmt --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure.sh --disable-sdl --icon
