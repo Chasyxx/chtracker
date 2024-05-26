@@ -23,7 +23,7 @@
 #ifndef LIBRARY_LOG
 #define LIBRARY_LOG
 
-#include <format>
+#include <fmt/core.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -59,7 +59,7 @@ extern int level;
 extern std::vector<struct log> logs;
 template <typename... Args>
 void log(int severity, std::string &format, Args &&...args) {
-  std::string msg = std::vformat(format, std::make_format_args(args...));
+  std::string msg = fmt::format(format, std::forward<Args>(args)...);
   if (level <= severity) {
     logs.push_back(
         {.msg = msg, .severity = static_cast<char>(severity), .printed = true});

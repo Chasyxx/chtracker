@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Install SDL2 for Linux compiltion
-      run: sudo apt-get install libsdl2-dev
+    - name: Install SDL2 and libfmt
+      run: sudo apt-get install libsdl2-dev libfmt-dev
 
     - name: configure for Linux compilation
       run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0" ./configure.sh --disable-sdl
@@ -32,22 +32,41 @@ jobs:
     needs: linux
     steps:
       - uses: actions/checkout@v4
-      - name: Install MinGW-w64
-        run: sudo apt-get install mingw-w64
+      - name: Install MinGW-w64 and CMake
+        run: sudo apt-get install mingw-w64 cmake
 
-      - name: build SDL2
+      - name: dependencies- Build SDL2
         run: |
-          git clone -b SDL2 https://github.com/libsdl-org/SDL.git
-          mkdir libsdl
-          mkdir SDL/build
-          cd SDL/build
+          git clone -b SDL2 https://github.com/libsdl-org/SDL.git ../SDL
+          mkdir ../libsdl
+          mkdir ../SDL/build
+          cd ../SDL/build
           ../configure --host=x86_64-w64-mingw32 --prefix=$PWD/../../libsdl --disable-shared --enable-static
           make
           make install
           cd ../..
 
+      - name: dependencies- Build libfmt
+        run: |
+          git clone https://github.com/fmtlib/fmt.git fmt
+          mkdir libfmt
+          mkdir fmt/build
+          cd fmt/build
+          echo "set(CMAKE_SYSTEM_NAME Windows)" > ../toolchain-mingw64.cmake
+          echo "set(CMAKE_SYSTEM_VERSION 1)" >> ../toolchain-mingw64.cmake
+          echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> ../toolchain-mingw64.cmake
+          echo "set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)" >> ../toolchain-mingw64.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)" >> ../toolchain-mingw64.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> ../toolchain-mingw64.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> ../toolchain-mingw64.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> ../toolchain-mingw64.cmake
+          cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-mingw64.cmake -DCMAKE_INSTALL_PREFIX=../../libfmt -DFMT_TEST=OFF ..
+          make
+          make install
+          cd ../../chtracker
+
       - name: configure for Windows cross-compilation
-        run: CFLAGS="-O2 -I$PWD/libsdl/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(./libsdl/bin/sdl2-config --libs) --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure.sh --disable-sdl --icon
+        run: CFLAGS="-O2 -I$PWD/../libsdl/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(../libsdl/bin/sdl2-config --libs) -L$PWD/../../libfmt/ -lfmt --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure.sh --disable-sdl --icon
 # CFLAGS="-O2 -I$HOME/.local/sdl2-mingw-w64/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$($HOME/.local/sdl2-mingw-w64/bin/sdl2-config --libs) --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure.sh --disable-sdl --icon
       - name: make a Windows executable
         run: make

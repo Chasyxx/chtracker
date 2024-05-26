@@ -3,6 +3,10 @@
 ## Usage
 See doc/help.txt: <https://github.com/Chasyxx/chtracker/blob/main/doc/help.txt>. It says hi!
 
+## Dependencies
+* SDL2 (`sudo apt-get install libsdl2-dev` or `sudo pacman -S sdl2`)
+* [libfmt](https://github.com/fmtlib/fmt) (`sudo apt-get install libfmt-dev` or `sudo pacman -S fmt`)
+
 ## Compilation
 Ensure you're in the source tree (the directory contaaining `src`, not `src` itself).
 1. `./configure.sh --clean` - Best to make sure you have a clean source tree.

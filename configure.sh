@@ -17,6 +17,7 @@ if on $CFLAGS; then
 else
 	CFLAGS="-O2 -Wall -Wextra -I$PWD/src/headers"
 fi
+on $LIBS || LIBS="-lfmt"
 on $CXXFLAGS && AUTODEFINE_CXX=0
 PREFIX="/usr/local"
 on $BINDIRS && BINDIRS="$BINDIRS "
@@ -258,7 +259,7 @@ if ! exists $DOCDIR; then
 fi
 
 if [ $AUTODEFINE_CXX -eq 1 ]; then
-	CXXFLAGS="$CFLAGS -std=c++20"
+	CXXFLAGS="$CFLAGS -std=c++17"
 else if ! on $CXXFLAGS; then
 	CXXFLAGS=$CFLAGS
 fi
@@ -266,11 +267,12 @@ fi
 
 checkwarnings
 
-notice "C   flags: $CFLAGS"
-notice "C++ flags: $CXXFLAGS"
-notice "lib flags: $LIBS" 
-notice "bin dir  : $BINDIR"
-notice "doc dir  : $DOCDIR"
+notice "C   flags    : $CFLAGS"
+notice "C++ flags    : $CXXFLAGS"
+notice "libraries    : $LIBS" 
+on $PRELIBS && notice "pre-libraries: $PRELIBS" 
+notice "bin dir      : $BINDIR"
+notice "doc dir      : $DOCDIR"
 
 
 [ $DRY_RUN -eq 1 ] && exit 0;
@@ -308,6 +310,7 @@ CC=$CC
 CXX=$CXX
 CFLAGS=$CFLAGS
 CXXFLAGS=$CXXFLAGS
+PRELIBS=$PRELIBS
 LIBS=$LIBS
 CCLD=$CCLD
 BINDIR=$BINDIR
@@ -334,7 +337,7 @@ EOS
 if [ $ICON -eq 1 ]; then
 	cat >> src/Makefile << ----EOS
 ../chtracker: log.oxx timer.oxx order.oxx channel.oxx visual.o resources.o chtracker.oxx
-	\$(CCLD) -o \$@ \$^ \$(LIBS)
+	\$(CCLD) -o \$@ \$(PRELIBS) \$^ \$(LIBS)
 
 resources.o: resources.rc
 	\$(RES) \$< -o \$@
@@ -342,7 +345,7 @@ resources.o: resources.rc
 else
 	cat >> src/Makefile << ----EOS
 ../chtracker: log.oxx timer.oxx order.oxx channel.oxx visual.o chtracker.oxx
-	\$(CCLD) -o \$@ \$^ \$(LIBS)
+	\$(CCLD) -o \$@ \$(PRELIBS) \$^ \$(LIBS)
 ----EOS
 fi
 cat >> src/Makefile << EOS
