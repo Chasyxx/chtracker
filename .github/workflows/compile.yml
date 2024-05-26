@@ -37,10 +37,10 @@ jobs:
 
       - name: dependencies- Build libfmt
         run: |
-          git clone https://github.com/fmtlib/fmt.git fmt
-          mkdir libfmt
-          mkdir fmt/build
-          cd fmt/build
+          git clone https://github.com/fmtlib/fmt.git ../fmt
+          mkdir ../libfmt
+          mkdir ../fmt/build
+          cd ../fmt/build
           echo "set(CMAKE_SYSTEM_NAME Windows)" > ../toolchain-mingw64.cmake
           echo "set(CMAKE_SYSTEM_VERSION 1)" >> ../toolchain-mingw64.cmake
           echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> ../toolchain-mingw64.cmake
@@ -63,7 +63,7 @@ jobs:
           ../configure --host=x86_64-w64-mingw32 --prefix=$PWD/../../libsdl --disable-shared --enable-static
           make
           make install
-          cd ../..
+          cd ../../chtracker
 
       - name: configure for Windows cross-compilation
         run: CFLAGS="-O2 -I$PWD/../libsdl/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(../libsdl/bin/sdl2-config --libs) -L$PWD/../../libfmt/ -lfmt --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure.sh --disable-sdl --icon
