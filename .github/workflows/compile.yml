@@ -32,8 +32,8 @@ jobs:
     needs: linux
     steps:
       - uses: actions/checkout@v4
-      - name: Install MinGW-w64 and CMake
-        run: sudo apt-get install mingw-w64 cmake
+      - name: Install MinGW-w64
+        run: sudo apt-get install mingw-w64
 
       - name: dependencies- Build SDL2
         run: |
@@ -45,6 +45,9 @@ jobs:
           make
           make install
           cd ../..
+
+      - name: Install CMake
+        run: sudo apt-get install cmake
 
       - name: dependencies- Build libfmt
         run: |
