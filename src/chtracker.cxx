@@ -23,7 +23,7 @@
 /***************************************
  *                                     *
  *           INCLUDE SECTION           *
- *   All #include directives go here   *
+ *   ALL #include directives go here   *
  *                                     *
  ***************************************/
 
@@ -63,7 +63,7 @@
 /**************************************
  *                                    *
  *            MACRO SECTION           *
- *   All #define DIRECTIVES GO HERE   *
+ *   ALL #define DIRECTIVES GO HERE   *
  *                                    *
  **************************************/
 
@@ -73,7 +73,7 @@
 /**********************************
  *                                *
  *          USING SECTION         *
- *   All using KEYWORDS GO HERE   *
+ *   ALL using KEYWORDS GO HERE   *
  *                                *
  **********************************/
 
@@ -83,7 +83,7 @@ using std::filesystem::path;
 /************************************
  *                                  *
  *     GLOBAL VARIABLES SECTION     *
- *   All GLOBAL VARIABLES GO HERE   *
+ *   ALL GLOBAL VARIABLES GO HERE   *
  *                                  *
  ************************************/
 
@@ -191,6 +191,7 @@ void audioTickTimers() {
       audio::row = 0;
       audio::pattern++;
       if (audio::pattern >= indexes.rowCount()) {
+        cmd::log::debug("Reached end of song, looping!");
         audio::pattern = 0;
       }
     }
@@ -213,6 +214,66 @@ void audioTickTimers() {
     }
     timerSystem.resetTimer("arpeggio", 1500 * 960 / audio::tempo);
   }
+}
+
+/*************************
+ * Channel name function *
+ *************************/
+
+char *getTypeName(audioChannelType type, bool short_name) {
+  char *str = const_cast<char *>("Error");
+  switch (type) {
+  case audioChannelType::null:
+    if (short_name) {
+      str = const_cast<char *>("--");
+      break;
+    };
+    str = const_cast<char *>("Silent");
+    break;
+  case audioChannelType::lfsr8:
+    if (short_name) {
+      str = const_cast<char *>("NS");
+      break;
+    };
+    str = const_cast<char *>("8 bit LFSR");
+    break;
+  case audioChannelType::lfsr14:
+    if (short_name) {
+      str = const_cast<char *>("NL");
+      break;
+    };
+    str = const_cast<char *>("14bit LFSR");
+    break;
+  case audioChannelType::pulse:
+    if (short_name) {
+      str = const_cast<char *>("SQ");
+      break;
+    };
+    str = const_cast<char *>("Square");
+    break;
+  case audioChannelType::triangle:
+    if (short_name) {
+      str = const_cast<char *>("TR");
+      break;
+    };
+    str = const_cast<char *>("Triangle");
+    break;
+  case audioChannelType::sawtooth:
+    if (short_name) {
+      str = const_cast<char *>("SW");
+      break;
+    };
+    str = const_cast<char *>("Sawtooth");
+    break;
+  default:
+    if (short_name) {
+      str = const_cast<char *>("??");
+      break;
+    };
+    str = const_cast<char *>("Unknown");
+    break;
+  }
+  return str;
 }
 
 /******************
@@ -369,37 +430,55 @@ int loadFile(path filePath) {
     if (buffer[i] != "CHTRACKER"[i]) {
       fileMenu_errorText = const_cast<char *>("Not a chTRACKER file");
       cmd::log::error(fileMenu_errorText);
+      cmd::log::debug("Mismatch on letter {}", i);
       delete[] buffer;
       file.close();
       return 1;
     }
   }
+  if (buffer[12] != 0)
+    cmd::log::debug("File version {}.{}.{}.{}", static_cast<int>(buffer[9]),
+                    static_cast<int>(buffer[10]), static_cast<int>(buffer[11]),
+                    static_cast<char>('A' + buffer[12] - 1));
+  else
+    cmd::log::debug("File version {}.{}.{}", static_cast<int>(buffer[9]),
+                    static_cast<int>(buffer[10]), static_cast<int>(buffer[11]));
   if (buffer[9] != global_majorVersion) {
     fileMenu_errorText = const_cast<char *>("Major version mismatch");
-    cmd::log::error(fileMenu_errorText);
+    cmd::log::error("Major verion mismatch, expected {} and got {}",
+                    global_majorVersion, buffer[9]);
     delete[] buffer;
     file.close();
     return 1;
   }
   if (buffer[10] > global_minorVersion) {
     fileMenu_errorText = const_cast<char *>("Newer minor version");
-    cmd::log::error(fileMenu_errorText);
+    cmd::log::error("Newer minor verion, expected {} and got {}",
+                    global_minorVersion, buffer[10]);
     delete[] buffer;
     file.close();
     return 1;
   }
-  unsigned short local_rowsPerMinute = static_cast<unsigned short>(buffer[13])
-                                           << 8 |
-                                       static_cast<unsigned short>(buffer[14]);
-  unsigned short local_rowsPerPattern = static_cast<unsigned short>(buffer[15])
-                                            << 8 |
-                                        static_cast<unsigned short>(buffer[16]);
+  if (buffer[11] > global_patchVersion && buffer[10] == global_minorVersion) {
+    cmd::log::warning("Newer patch version, found {}", buffer[11]);
+  }
+  if (buffer[12] > 0 && global_prereleaseVersion == 0) {
+    cmd::log::warning("Opening prerelease file on non-prerelease version");
+  }
+  unsigned short local_rowsPerMinute = audio::tempo =
+      static_cast<unsigned short>(buffer[13]) << 8 |
+      static_cast<unsigned short>(buffer[14]);
+  unsigned short local_rowsPerPattern = patternLength =
+      static_cast<unsigned short>(buffer[15]) << 8 |
+      static_cast<unsigned short>(buffer[16]);
   unsigned short local_orderCount = static_cast<unsigned short>(buffer[17])
                                         << 8 |
                                     static_cast<unsigned short>(buffer[18]);
   unsigned char local_instrumentCount = buffer[19];
   delete[] buffer;
-
+  cmd::log::debug("Tempo {}, {} rows per pattern, {} orders and {} instruments",
+                  local_rowsPerMinute, local_rowsPerPattern, local_orderCount,
+                  local_instrumentCount);
   std::vector<unsigned char> instrumentOrderCounts(0);
 
   buffer = new unsigned char[local_instrumentCount * 8];
@@ -487,10 +566,6 @@ int loadFile(path filePath) {
     delete[] buffer;
     cmd::log::debug("Read order table for instrument {}", tableIdx);
   }
-
-  cmd::log::debug("Setting tempo and pattern length");
-  audio::tempo = local_rowsPerMinute;
-  patternLength = local_rowsPerPattern;
   file.close();
   cmd::log::debug("File read successfully");
   return 0;
@@ -687,10 +762,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
  * Initialization *
  ******************/
 
-void init(/*SDL_Renderer *renderer, */ SDL_Window *window) {
-  int windowWidth, windowHeight;
-  SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-
+void init() {
 #ifdef _POSIX
   char *str = std::getenv("HOME");
   if (str == nullptr) {
@@ -978,7 +1050,7 @@ int main(int argc, char *argv[]) {
     cmd::log::critical("Failed to create a renderer: {}", SDL_GetError());
     quit(1);
   }
-  init(/*renderer, */ window);
+  init();
   if (argc > 1) {
     for (int p = 1; p < argc; p++) {
       string arg(argv[p]);

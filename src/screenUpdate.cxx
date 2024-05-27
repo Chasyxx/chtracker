@@ -21,7 +21,7 @@
 /***************************************
  *                                     *
  *           INCLUDE SECTION           *
- *   All #include directives go here   *
+ *   ALL #include directives go here   *
  *                                     *
  ***************************************/
 
@@ -45,7 +45,7 @@
 /**************************************
  *                                    *
  *            MACRO SECTION           *
- *   All #define DIRECTIVES GO HERE   *
+ *   ALL #define DIRECTIVES GO HERE   *
  *                                    *
  **************************************/
 
@@ -117,61 +117,9 @@ void hex4(unsigned short a, char *s) {
  * Typename function *
  *********************/
 
-char *getTypeName(audioChannelType type, bool short_name) {
-  char *str = const_cast<char *>("Error");
-  switch (type) {
-  case audioChannelType::null:
-    if (short_name) {
-      str = const_cast<char *>("--");
-      break;
-    };
-    str = const_cast<char *>("Silent");
-    break;
-  case audioChannelType::lfsr8:
-    if (short_name) {
-      str = const_cast<char *>("NS");
-      break;
-    };
-    str = const_cast<char *>("8 bit LFSR");
-    break;
-  case audioChannelType::lfsr14:
-    if (short_name) {
-      str = const_cast<char *>("NL");
-      break;
-    };
-    str = const_cast<char *>("14bit LFSR");
-    break;
-  case audioChannelType::pulse:
-    if (short_name) {
-      str = const_cast<char *>("SQ");
-      break;
-    };
-    str = const_cast<char *>("Square");
-    break;
-  case audioChannelType::triangle:
-    if (short_name) {
-      str = const_cast<char *>("TR");
-      break;
-    };
-    str = const_cast<char *>("Triangle");
-    break;
-  case audioChannelType::sawtooth:
-    if (short_name) {
-      str = const_cast<char *>("SW");
-      break;
-    };
-    str = const_cast<char *>("Sawtooth");
-    break;
-  default:
-    if (short_name) {
-      str = const_cast<char *>("??");
-      break;
-    };
-    str = const_cast<char *>("Unknown");
-    break;
-  }
-  return str;
-}
+#ifndef IN_CHTRACKER_CONTEXT
+char *getTypeName(audioChannelType type, bool short_name);
+#endif
 
 /***********************
  * Seperator functions *
@@ -399,15 +347,27 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       // 16, visual_whiteText, 1, fontTileCountW);
       std::ifstream helpFile(docPath / "help.txt", std::ios::in);
 #ifdef _POSIX
+      static bool usingBackupHelpFile = false;
       if (!helpFile.is_open()) {
+        if (!usingBackupHelpFile) {
+          cmd::log::debug("Using fallback documentation directory");
+          usingBackupHelpFile = true;
+        }
         helpFile.open("/usr/share/doc/chtracker/help.txt");
-      }
+      } else
+        usingBackupHelpFile = false;
 #endif
+      static bool couldntOpenHelp = false;
       if (!helpFile.is_open()) {
+        if (!couldntOpenHelp) {
+          cmd::log::error("Couldn't open help");
+          couldntOpenHelp = true;
+        }
         text_drawText(renderer, const_cast<char *>("Couldn't open help"), 2, 0,
                       16, visual_redText, 1, 19);
         break;
-      }
+      } else
+        couldntOpenHelp = false;
       helpFile.seekg(0);
       if (helpFile.fail()) {
         text_drawText(renderer, const_cast<char *>("Couldn't read help"), 2, 0,
@@ -776,22 +736,30 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
             default:
               break;
             }
+            bool effectIsNull = e.type == effectTypes::null;
             text_drawBigChar(renderer, indexes_charToIdx(effect_number), 2,
                              16 * (4 + localCurrentCollumn), y,
-                             effect_autoreset ? visual_greenText
-                                              : visual_yellowText,
+                             effectIsNull       ? visual_greyText
+                             : effect_autoreset ? visual_greenText
+                                                : visual_yellowText,
                              (rowSeleted && selectedVariable == 4 + (i * 5)) ||
                                  (isAudioPlaying && cursorY == rowIndex));
             hex4(e.effect, letters);
             for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
-                 hexNumberIndex++)
+                 hexNumberIndex++) {
               text_drawBigChar(
-                  renderer, indexes_charToIdx(letters[hexNumberIndex]), 2,
-                  16 * (hexNumberIndex + 5 + localCurrentCollumn), y,
-                  effect_autoreset ? visual_greenText : visual_yellowText,
+                  renderer,
+                  indexes_charToIdx(effectIsNull ? '-'
+                                                 : letters[hexNumberIndex]),
+                  2, 16 * (hexNumberIndex + 5 + localCurrentCollumn), y,
+                  effectIsNull       ? visual_greyText
+                  : effect_autoreset ? visual_greenText
+                                     : visual_yellowText,
+
                   (rowSeleted &&
                    selectedVariable == 5 + hexNumberIndex + (i * 5)) ||
                       (isAudioPlaying && cursorY == rowIndex));
+            }
             localCurrentCollumn += 6;
           }
           if (currentViewMode >= 1)
@@ -1152,7 +1120,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
           break;
         }
         text_drawText(renderer, const_cast<char *>(l.msg.c_str()), 1, 48, y,
-                      l.printed?visual_whiteText:visual_greyText, 0, windowWidth / 8 - 6);
+                      l.printed ? visual_whiteText : visual_greyText, 0,
+                      windowWidth / 8 - 6);
       }
     }
     }

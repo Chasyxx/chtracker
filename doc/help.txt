@@ -21,7 +21,7 @@ help menu. If not, hi!
 
 ---# General
 
-Press function keys F1 - F7 to change
+Press function keys F1 - F8 to change
 menus. Here are basic descriptions:
 
 F1: Help menu - Where you are right
@@ -52,12 +52,17 @@ F7: File menu - A built in file picker
     starts in your home directory.
     On Windows, it starts in C:\
 
+F8: Log menu - A viewer for the program
+    logs. Some of these are printed to
+    stderr as well. Up and down keys to
+    scroll. Top is newer.
+
 This program assumes you have basic
 knowledge on how to use a chiptune
 tracker. If not, there are many helpful
 guides online. It's also a really good
-idea to know hexadecimal. This program
-has a lot of hexadecimal.
+idea to know hexadecimal; this program
+has a lot of it.
 
 Most of the menus have information on
 what key to press. Press ESC outside of

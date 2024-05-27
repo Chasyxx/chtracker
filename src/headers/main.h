@@ -23,18 +23,18 @@
 #ifndef CHTRACKER_MAIN_H
 #define CHTRACKER_MAIN_H
 
+/*************************************
+*                                    *
+*            MACRO SECTION           *
+*   ALL #define DIRECTIVES GO HERE   *
+*                                    *
+*************************************/
+
 #ifdef __cplusplus
 #define MAIN_H_CONST constexpr
 #else
 #define MAIN_H_CONST const
 #endif
-
-/*************************************
-*                                    *
-*            MACRO SECTION           *
-*   All #define DIRECTIVES GO HERE   *
-*                                    *
-*************************************/
 
 #define AUDIO_SAMPLE_COUNT 1024
 
@@ -54,7 +54,7 @@
 /**********************************************
 *                                             *
 *           ENUM AND SCRUCT SECTION           *
-*   All enum AND struct DEFINITIONS GO HERE   *
+*   ALL enum AND struct DEFINITIONS GO HERE   *
 *                                             *
 **********************************************/
 
@@ -93,22 +93,20 @@ struct CursorPos {
 /*****************************************
 *                                        *
 *             CONST SECTION              *
-*   All MAIN_H_CONST VARIABLES GO HERE   *
+*   ALL MAIN_H_CONST VARIABLES GO HERE   *
 *                                        *
 *****************************************/
 
 MAIN_H_CONST unsigned char global_majorVersion /**/ = 0x00;
-MAIN_H_CONST unsigned char global_minorVersion /**/ = 0x03;
+MAIN_H_CONST unsigned char global_minorVersion /**/ = 0x04;
 MAIN_H_CONST unsigned char global_patchVersion /**/ = 0x00;
-MAIN_H_CONST unsigned char global_prereleaseVersion = 0x00;
+MAIN_H_CONST unsigned char global_prereleaseVersion = 0x01;
 
 MAIN_H_CONST unsigned char patternMenu_instrumentCollumnWidth[] = {3,  6,  12,
                                                                 18, 24, 30};
 MAIN_H_CONST unsigned char patternMenu_instrumentVariableCount[] = {2,  4,  9,
                                                                  14, 19, 24};
 
-#ifdef MAIN_H_CONST
 #undef MAIN_H_CONST
-#endif
 
 #endif // ifndef CHTRACKER_MAIN_H

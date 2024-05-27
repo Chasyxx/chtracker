@@ -487,6 +487,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
         switch (code) {
         case '-':
           e.type = effectTypes::null;
+          e.effect = 0;
           break;
         case '0':
           e.type = effectTypes::arpeggio;
