@@ -43,14 +43,14 @@ jobs:
         id: cache-libfmt
         uses: actions/cache@v3
         with:
-          path: ../libfmt
+          path: /home/runner/work/chtracker/libfmt
           key: libfmt-${{ env.CACHE_KEY }}-chtracker
 
       - name: dependencies- Cache SDL2
         id: cache-sdl2
         uses: actions/cache@v3
         with:
-          path: ../libsdl
+          path: ./home/runner/work/chtracker/libsdl
           key: libsdl-${{ env.CACHE_KEY }}-chtracker
 
       - if: ${{ steps.cache-libfmt.outputs.cache-hit != 'true' }}
