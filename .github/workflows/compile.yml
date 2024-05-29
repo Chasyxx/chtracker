@@ -39,7 +39,22 @@ jobs:
       - name: Install MinGW-w64 and CMake
         run: sudo apt-get install mingw-w64 cmake
 
-      - name: dependencies- Build libfmt
+      - name: dependencies- Cache libfmt
+        id: cache-libfmt
+        uses: actions/cache@v3
+        with:
+          path: ../libfmt
+          key: libfmt-${{ env.CACHE_KEY }}-chtracker
+
+      - name: dependencies- Cache SDL2
+        id: cache-sdl2
+        uses: actions/cache@v3
+        with:
+          path: ../libsdl
+          key: libsdl-${{ env.CACHE_KEY }}-chtracker
+
+      - if: ${{ steps.cache-libfmt.outputs.cache-hit != 'true' }}
+        name: dependencies- Build libfmt
         run: |
           git clone https://github.com/fmtlib/fmt.git ../fmt
           mkdir ../libfmt
@@ -58,7 +73,8 @@ jobs:
           make install
           cd ../../chtracker
 
-      - name: dependencies- Build SDL2
+      - if: ${{ steps.cache-libsdl.outputs.cache-hit != 'true' }}
+        name: dependencies- Build SDL2
         run: |
           git clone -b SDL2 https://github.com/libsdl-org/SDL.git ../SDL
           mkdir ../libsdl
