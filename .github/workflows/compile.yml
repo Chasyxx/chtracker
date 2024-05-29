@@ -73,7 +73,7 @@ jobs:
           make install
           cd ../../chtracker
 
-      - if: ${{ steps.cache-libsdl.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.cache-sdl2.outputs.cache-hit != 'true' }}
         name: dependencies- Build SDL2
         run: |
           git clone -b SDL2 https://github.com/libsdl-org/SDL.git ../SDL
