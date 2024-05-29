@@ -50,7 +50,7 @@ jobs:
         id: cache-sdl2
         uses: actions/cache@v3
         with:
-          path: ./home/runner/work/chtracker/libsdl
+          path: /home/runner/work/chtracker/libsdl
           key: libsdl-${{ env.CACHE_KEY }}-chtracker
 
       - if: ${{ steps.cache-libfmt.outputs.cache-hit != 'true' }}
