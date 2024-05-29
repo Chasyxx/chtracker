@@ -64,7 +64,7 @@ jobs:
           mkdir ../libsdl
           mkdir ../SDL/build
           cd ../SDL/build
-          ../configure --host=x86_64-w64-mingw32 --prefix=$PWD/../../lib{sdl,fmt} --disable-shared --enable-static
+          ../configure --host=x86_64-w64-mingw32 --prefix=$PWD/../../libsdl --disable-shared --enable-static
           make
           make install
           cd ../../chtracker
