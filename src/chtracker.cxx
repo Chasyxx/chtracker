@@ -18,6 +18,8 @@
   Chase Taylor @ creset200@gmail.com
 */
 
+#include <SDL2/SDL_audio.h>
+#include <exception>
 #define IN_CHTRACKER_CONTEXT
 
 /***************************************
@@ -92,13 +94,15 @@ using std::filesystem::path;
  *********/
 
 namespace audio {
-unsigned long /***/ time = 0;
-unsigned char /***/ row = -1;
-unsigned short /**/ pattern = 0;
-bool /************/ isPlaying = false;
-bool /************/ freeze = false;
-bool /************/ isFrozen = true;
-unsigned short /**/ tempo = 960;
+unsigned long /******/ time = 0;
+unsigned char /******/ row = -1;
+unsigned short /*****/ pattern = 0;
+bool /***************/ isPlaying = false;
+bool /***************/ freeze = false;
+bool /***************/ isFrozen = true;
+unsigned short /*****/ tempo = 960;
+SDL_AudioDeviceID /**/ deviceID = 0;
+bool /***************/ errorIsPresent = false;
 } // namespace audio
 
 /**************
@@ -682,80 +686,100 @@ int renderTo(path path) {
   return 0;
 }
 
-/******************
- * Audio callback *
- ******************/
+/*******************
+ * Audio callbacks *
+ *******************/
 
 void audioCallback(void *userdata, Uint8 *stream, int len) {
   (void)userdata;
+  if (audio::errorIsPresent)
+    return;
   int samples = len / 2;
   Sint16 *data = reinterpret_cast<Sint16 *>(stream);
 
-  if (audio::freeze) {
-    for (int i = 0; i < samples; i++) {
-      data[i] /= 2;
-    }
-    audio::isFrozen = true;
-    return;
-  }
-  audio::isFrozen = false;
-
-  if (gui::currentMenu == GlobalMenus::main_menu) {
-    for (unsigned int i = 0; i < static_cast<unsigned int>(samples); i++) {
-      unsigned long t = audio::time + i;
-      data[i] =
-          (-(3 * t >> 5 & t >> 14 & t >> 6) * t << 1) | (t * 5 * 128 & t << 1);
-    }
-    audio::time += samples;
-    return;
-  }
-
-  if (!audio::freeze && audio::isPlaying && orders.tableCount() > 0) {
-    if (!timerSystem.hasTimer("row"))
-      timerSystem.addTimer("row", 48000 * 60 / audio::tempo);
-    if (!timerSystem.hasTimer("effect"))
-      timerSystem.addTimer("effect", 375 * 960 / audio::tempo);
-    if (!timerSystem.hasTimer("arpeggio"))
-      timerSystem.addTimer("arpeggio", 1500 * 960 / audio::tempo);
-
-    for (unsigned int audioIdx = 0;
-         audioIdx < static_cast<unsigned int>(samples); audioIdx++) {
-      Sint16 sample = 0;
-      for (unsigned char instrumentIdx = 0;
-           instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
-        sample = std::min(
-            32767, std::max(-32767,
-                            static_cast<Sint32>(sample) +
-                                static_cast<Sint32>(
-                                    instrumentSystem.at(instrumentIdx)->gen()) /
-                                    4));
+  try {
+    if (audio::freeze) {
+      for (int i = 0; i < samples; i++) {
+        data[i] /= 2;
       }
-      data[audioIdx] = gui::waveformDisplay[audioIdx] = sample;
-      audioTickTimers();
-      audio::time++;
+      audio::isFrozen = true;
+      return;
     }
-  } else {
-    if (!audio::freeze) {
-      if (timerSystem.hasTimer("row"))
-        timerSystem.removeTimer("row");
-      if (timerSystem.hasTimer("effect"))
-        timerSystem.removeTimer("effect");
-      if (timerSystem.hasTimer("arpeggio"))
-        timerSystem.removeTimer("arpeggio");
-      audio::row = 0;
-      audio::pattern = gui::patternMenuOrderIndex;
-      row dummyRow = {rowFeature::note_cut, 'A', 4, 0, std::vector<effect>(0)};
-      for (char i = 0; i < 4; i++)
-        dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
-      for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
-        instrumentSystem.at(i)->set_row(dummyRow);
+    audio::isFrozen = false;
+
+    if (gui::currentMenu == GlobalMenus::main_menu) {
+      for (unsigned int i = 0; i < static_cast<unsigned int>(samples); i++) {
+        unsigned long t = audio::time + i;
+        data[i] = (-(3 * t >> 5 & t >> 14 & t >> 6) * t << 1) |
+                  (t * 5 * 128 & t << 1);
+      }
+      audio::time += samples;
+      return;
+    }
+
+    if (!audio::freeze && audio::isPlaying && orders.tableCount() > 0) {
+      if (!timerSystem.hasTimer("row"))
+        timerSystem.addTimer("row", 48000 * 60 / audio::tempo);
+      if (!timerSystem.hasTimer("effect"))
+        timerSystem.addTimer("effect", 375 * 960 / audio::tempo);
+      if (!timerSystem.hasTimer("arpeggio"))
+        timerSystem.addTimer("arpeggio", 1500 * 960 / audio::tempo);
+
+      for (unsigned int audioIdx = 0;
+           audioIdx < static_cast<unsigned int>(samples); audioIdx++) {
+        Sint16 sample = 0;
+        for (unsigned char instrumentIdx = 0;
+             instrumentIdx < instrumentSystem.inst_count(); instrumentIdx++) {
+          sample = std::min(
+              32767,
+              std::max(-32767,
+                       static_cast<Sint32>(sample) +
+                           static_cast<Sint32>(
+                               instrumentSystem.at(instrumentIdx)->gen()) /
+                               4));
+        }
+        data[audioIdx] = gui::waveformDisplay[audioIdx] = sample;
+        audioTickTimers();
+        audio::time++;
+      }
+    } else {
+      if (!audio::freeze) {
+        if (timerSystem.hasTimer("row"))
+          timerSystem.removeTimer("row");
+        if (timerSystem.hasTimer("effect"))
+          timerSystem.removeTimer("effect");
+        if (timerSystem.hasTimer("arpeggio"))
+          timerSystem.removeTimer("arpeggio");
+        audio::row = 0;
+        audio::pattern = gui::patternMenuOrderIndex;
+        row dummyRow = {rowFeature::note_cut, 'A', 4, 0,
+                        std::vector<effect>(0)};
+        for (char i = 0; i < 4; i++)
+          dummyRow.effects.push_back(effect{effectTypes::arpeggio, 0});
+        for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
+          instrumentSystem.at(i)->set_row(dummyRow);
+        }
+      }
+      for (int i = 0; i < samples; i++) {
+        data[i] /= 2;
+        gui::waveformDisplay[i] = 0;
       }
     }
-    for (int i = 0; i < samples; i++) {
-      data[i] /= 2;
-      gui::waveformDisplay[i] = 0;
-    }
+  } catch (std::exception &e) {
+    cmd::log::critical("Audio thread: {} {}", typeid(e).name(), e.what());
+    audio::errorIsPresent = true;
   }
+}
+
+void whoops(void *userdata, Uint8 *stream, int len) {
+  (void)userdata;
+  for (int i = 0; i < len; i++) {
+    unsigned long t = audio::time + i;
+    stream[i] = ((127 & t * (7 & t >> 11)) < (245 & t * (8 - (5 & t >> 13)))) *
+                    (128 - (t >> 5 & 127)) +
+                64 + (t >> 6 & 63);
+  }
+  audio::time += len;
 }
 
 /******************
@@ -786,13 +810,14 @@ void init() {
   audioSpec.channels = 1;
   audioSpec.samples = AUDIO_SAMPLE_COUNT;
   audioSpec.callback = audioCallback;
-
-  if (SDL_OpenAudio(&audioSpec, NULL) < 0) {
+  audio::deviceID = SDL_OpenAudioDevice(NULL, 0, &audioSpec, NULL,
+                                        SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
+  if (audio::deviceID == 0) {
     cmd::log::critical("Couldn't open audio: {}", SDL_GetError());
     quit(1);
   }
   indexes.addRow();
-  SDL_PauseAudio(0);
+  SDL_PauseAudioDevice(audio::deviceID, 0);
 }
 
 /*********************************
@@ -916,6 +941,8 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
   SDL_Event event;
   int quit = 0;
   while (true) {
+    if (audio::errorIsPresent)
+      throw std::logic_error("Audio error; check the console for details.");
     while (SDL_PollEvent(&event)) {
       sdlEventHandler(&event, quit);
     }
@@ -937,6 +964,67 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
         break;
     }
   }
+}
+
+void errorScreen(SDL_Renderer *r, SDL_Window *w, std::exception &e) {
+  cmd::log::critical("{} {}", typeid(e).name(), e.what());
+  cmd::log::critical(
+      "Please create an issue at https://github.com/Chasyxx/chtracker with "
+      "details of the error and what you were doing when the error ocurred.");
+  try {
+    SDL_SetWindowSize(w, 640, 256);
+    SDL_PauseAudioDevice(audio::deviceID, 1);
+    SDL_CloseAudioDevice(audio::deviceID);
+    audio::time = 0;
+    SDL_Event event;
+    int keys = 0;
+    SDL_AudioSpec audioSpec;
+    audioSpec.freq = 8000;
+    audioSpec.format = AUDIO_U8;
+    audioSpec.channels = 1;
+    audioSpec.samples = AUDIO_SAMPLE_COUNT;
+    audioSpec.callback = whoops;
+    audio::deviceID = SDL_OpenAudioDevice(NULL, 0, &audioSpec, NULL,
+                                          SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
+    if (audio::deviceID == 0) {
+      cmd::log::error("Couldn't open audio during error, leave it! {}",
+                      SDL_GetError());
+    } else
+      SDL_PauseAudioDevice(audio::deviceID, 0);
+    while (true) {
+      while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_KEYUP) {
+          keys++;
+        } else if (event.type == SDL_QUIT)
+          keys = 8;
+      }
+      if (keys > 7)
+        break;
+      SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+      SDL_RenderClear(r);
+      text_drawText(r, const_cast<char *>("UHOH! chTRACKER has EXCEPTIONED!"),
+                    2, 16, 16, visual_redText, 1, 38);
+      text_drawText(r, const_cast<char *>(typeid(e).name()), 2, 16, 32,
+                    visual_redText, 0, 38);
+      text_drawText(r, const_cast<char *>(e.what()), 2, 16, 64, visual_redText,
+                    0, 38);
+      text_drawText(
+          r,
+          const_cast<char *>(
+              "Please create an issue "
+              "at\nhttps://github.com/Chasyxx/chtracker\nwith details of the "
+              "error and what\nyou were doing when the error ocurred.\n\nPress "
+              "a key up to 8 times to abort."),
+          2, 16, 128, visual_whiteText, 0, 38);
+      //                                                                                                                                             "12345678901234r567890123456789012345678"
+      SDL_RenderPresent(r);
+    }
+  } catch (std::exception &e2) {
+    cmd::log::error("{} {} in SDL error display routine!", typeid(e2).name(),
+                    e2.what());
+  }
+  cmd::log::error("Aborting!");
+  abort();
 }
 
 void printHelp() {
@@ -1058,7 +1146,12 @@ int main(int argc, char *argv[]) {
                                           p);
     }
   }
-  sdlLoop(renderer, window);
+  try {
+    sdlLoop(renderer, window);
+  } catch (std::exception &error) {
+    // how do i get the name of the exception
+    errorScreen(renderer, window, error);
+  }
   quit(0);
   return 0;
 }
