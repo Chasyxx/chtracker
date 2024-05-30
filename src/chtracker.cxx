@@ -51,6 +51,7 @@
 #include <string>
 #include <strings.h>
 #include <vector>
+#include <array>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -131,7 +132,7 @@ unsigned short /**/ patternMenuOrderIndex = 0;
 char /************/ patternMenuViewMode = 3;
 int /*************/ lastWindowWidth;
 int /*************/ lastWindowHeight;
-Sint16 /**********/ waveformDisplay[AUDIO_SAMPLE_COUNT];
+std::array<Sint16,AUDIO_SAMPLE_COUNT> /**/ waveformDisplay;
 } // namespace gui
 
 /****************
@@ -146,7 +147,7 @@ path /****/ fileMenu_directoryPath = "/";
 char * /**/ fileMenu_errorText = const_cast<char *>("");
 string /**/ saveFileMenu_fileName = "file.cht";
 string /**/ renderMenu_fileName = "render.wav";
-path /****/ executableAbolutePath = "";
+path /****/ executableAbsolutePath = "";
 path /****/ documentationDirectory = "./doc";
 bool /****/ global_unsavedChanges = false;
 
@@ -593,7 +594,7 @@ int renderTo(path path) {
   songLength /= audio::tempo;
   // Make a buffer whose length is the file size
   size_t fileSize = (songLength * 2) + 44;
-  unsigned char *buffer = new unsigned char[fileSize];
+  auto buffer = std::make_unique<unsigned char[]>(fileSize);
   size_t headerIdx = 0;
   // Write a WAV header
   {
@@ -602,35 +603,35 @@ int renderTo(path path) {
            "RIFF"); // up to 3 (null at 4 must be overwritten)
     headerIdx += 4;
     // File size - 8 (song size + 36)
-    write32LE(buffer, fileSize - 8, headerIdx);
+    write32LE(buffer.get(), fileSize - 8, headerIdx);
     // WAVEfmt\0
     strcpy(reinterpret_cast<char *>(&buffer[headerIdx]),
            "WAVEfmt "); // up to 15 (null at 16 must be overwritten)
     headerIdx += 8;
     // the length of everything before this
-    write32LE(buffer, headerIdx, headerIdx);
+    write32LE(buffer.get(), headerIdx, headerIdx);
     // PCM
-    write16LE(buffer, 1, headerIdx);
+    write16LE(buffer.get(), 1, headerIdx);
     // Mono
-    write16LE(buffer, 1, headerIdx);
+    write16LE(buffer.get(), 1, headerIdx);
     // 48kHz
     {
       constexpr unsigned int sampleRate = 48000;
-      write32LE(buffer, sampleRate, headerIdx);
+      write32LE(buffer.get(), sampleRate, headerIdx);
       // Again (sr*16*1)/8 = sr * 2
       // (samplerate * bit depth * channel count) / 8
-      write32LE(buffer, sampleRate * 2, headerIdx);
+      write32LE(buffer.get(), sampleRate * 2, headerIdx);
     }
     // 16 bit mono
-    write16LE(buffer, 2, headerIdx);
+    write16LE(buffer.get(), 2, headerIdx);
     // 16 bits
-    write16LE(buffer, 16, headerIdx);
+    write16LE(buffer.get(), 16, headerIdx);
     // data
     strcpy(reinterpret_cast<char *>(&buffer[36]),
            "data"); // up to 39 (null at 40 must be overwritten)
     headerIdx += 4;
     // Data chunk length
-    write32LE(buffer, fileSize - 44, headerIdx);
+    write32LE(buffer.get(), fileSize - 44, headerIdx);
   }
   cmd::log::debug("WAV header written");
   audio::pattern = 0;
@@ -679,9 +680,8 @@ int renderTo(path path) {
   if (timerSystem.hasTimer("arpeggio"))
     timerSystem.removeTimer("arpeggio");
   audio::freeze = false;
-  file.write(reinterpret_cast<char *>(buffer), fileSize);
+  file.write(reinterpret_cast<char *>(buffer.get()), fileSize);
   file.close();
-  delete[] buffer;
   cmd::log::debug("Rendered successfully");
   return 0;
 }
@@ -738,7 +738,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
                                instrumentSystem.at(instrumentIdx)->gen()) /
                                4));
         }
-        data[audioIdx] = gui::waveformDisplay[audioIdx] = sample;
+        data[audioIdx] = gui::waveformDisplay.at(audioIdx) = sample;
         audioTickTimers();
         audio::time++;
       }
@@ -762,7 +762,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
       }
       for (int i = 0; i < samples; i++) {
         data[i] /= 2;
-        gui::waveformDisplay[i] = 0;
+        gui::waveformDisplay.at(i) = 0;
       }
     }
   } catch (std::exception &e) {
@@ -799,10 +799,11 @@ void init() {
   } else {
     fileMenu_directoryPath = str;
   }
-#elif !defined(_WIN32)
+#elif defined(_WIN32)
+  fileMenu_directoryPath = executableAbsolutePath.parent_path();
+#else
   fileMenu_directoryPath = "/";
 #endif
-
   SDL_AudioSpec audioSpec;
 
   audioSpec.freq = 48000;
@@ -1029,7 +1030,7 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, std::exception &e) {
 
 void printHelp() {
 #define pH(x) std::cout << x
-  pH("Usage: " << executableAbolutePath << " [-l 0-4] [-v] [PATH]"
+  pH("Usage: " << executableAbsolutePath << " [-l 0-4] [-v] [PATH]"
                << "\n\n");
   pH("-l --loglevel: Change loglevel. Lower is more verbose"
      << "\n");
@@ -1083,10 +1084,10 @@ int main(int argc, char *argv[]) {
 #if defined(__linux__)
   {
     int protector = 0;
-    executableAbolutePath = std::filesystem::read_symlink("/proc/self/exe");
-    while (std::filesystem::is_symlink(executableAbolutePath)) {
-      executableAbolutePath =
-          std::filesystem::read_symlink(executableAbolutePath);
+    executableAbsolutePath = std::filesystem::read_symlink("/proc/self/exe");
+    while (std::filesystem::is_symlink(executableAbsolutePath)) {
+      executableAbsolutePath =
+          std::filesystem::read_symlink(executableAbsolutePath);
       protector++;
       if (protector >= 64) {
         cmd::log::warning("Too many symlinks to process executable location");
@@ -1094,7 +1095,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  documentationDirectory = executableAbolutePath.parent_path() / "doc";
+  documentationDirectory = executableAbsolutePath.parent_path() / "doc";
 #elif defined(_WIN32)
   { executableAbolutePath = _pgmptr; }
   documentationDirectory = executableAbolutePath.parent_path() / "doc";
@@ -1113,7 +1114,7 @@ int main(int argc, char *argv[]) {
   }
 #endif
   cmd::log::notice("Welcome to chTRACKER!");
-  cmd::log::debug("The program path is " + executableAbolutePath.string());
+  cmd::log::debug("The program path is " + executableAbsolutePath.string());
   cmd::log::debug("The dynamic docdir is " + documentationDirectory.string());
   cmd::log::debug("Starting SDL");
   if (SDL_InitSubSystem(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) <

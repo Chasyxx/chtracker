@@ -29,6 +29,7 @@
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_video.h>
+#include <array>
 #include <climits>
 #include <filesystem>
 #include <fstream>
@@ -147,8 +148,9 @@ void barrierVertical(SDL_Renderer *r, unsigned int x, int windowHeight) {
 void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                   int &lastWindowWidth, int &lastWindowHeight,
                   const GlobalMenus currentMenu, const bool isAudioPlaying,
-                  const Sint16 *waveformDisplay, const bool hasUnsavedChanges,
-                  const CursorPos &cursorPosition, orderIndexStorage &indexes,
+                  std::array<Sint16, AUDIO_SAMPLE_COUNT> waveformDisplay,
+                  const bool hasUnsavedChanges, const CursorPos &cursorPosition,
+                  orderIndexStorage &indexes,
                   const unsigned short currentPattern,
                   const unsigned char currentRow, orderStorage &orders,
                   const unsigned short currentlyViewedOrder,
@@ -211,12 +213,15 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
     int i = 0;
     const char *str = "chTRACKER";
     while (str[i] != 0) {
+      Uint8 r = i & 1 ? 255 : 128;
+      Uint8 g = i & 2 ? 255 : 128;
+      Uint8 b = i & 4 ? 255 : 128;
       text_drawBigChar(
           renderer, indexes_charToIdx(str[i]), 4,
           windowWidth / 2 - 144 + (i * 32),
           static_cast<int>(windowHeight / 3.0 +
                            SDL_sin(i / 3.0 + (millis / 500.0)) * 16),
-          visual_whiteText, 0);
+          {r, g, b, 255}, 0);
       i++;
     }
     text_drawText(renderer, const_cast<char *>("Press Z"), 3,
@@ -245,9 +250,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       text_drawText(
           renderer,
           const_cast<char *>(
-              "NO WARRANTY for this program! The copyright holders will not be "
-              "held liable for damages arising from this program.\nCopyright "
-              "\xcc 2024 Chase Taylor. Licensed under GPL."),
+              "NO WARRANTY for this program, to the extent permitted by law. "
+              "In no event will the copyright holders be held liable for "
+              "damages arising from this program. See the GNU General Public "
+              "License.\nCopyright \xcc 2024 Chase Taylor."),
           1, 0, 0, visual_whiteText, 0, fontTileCountW * 2);
     }
   } else {
@@ -263,7 +269,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         unsigned int y;
         {
           float point = static_cast<float>(
-              waveformDisplay[i]); // Sint16[AUDIO_SAMPLE_COUNT]
+              waveformDisplay.at(i)); // Sint16[AUDIO_SAMPLE_COUNT]
           // if(i&1) point *= -1;
           y = static_cast<unsigned int>(((point / (INT16_MAX + 1.0)) + 1.0) *
                                         (windowHeight - 16.0) / 2.0) +
@@ -376,12 +382,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       }
       unsigned int undrawnLines = cursorPosition.y;
       unsigned int drawnRow = 0;
-      char buf[80];
+      std::array<char, 80> buf;
       while (!helpFile.eof() && !helpFile.fail()) {
         for (unsigned short i = 0; i < 80; i++) {
           buf[i] = 0;
         }
-        helpFile.getline(buf, 80);
+        helpFile.getline(buf.data(), 80);
         if (undrawnLines > 0) {
           undrawnLines--;
           continue;
@@ -409,9 +415,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
     case GlobalMenus::order_menu: {
       text_drawText(renderer, const_cast<char *>("Order rows: "), 2, 0, 16,
                     visual_whiteText, 0, fontTileCountW);
-      char *numberStr = new char[4];
-      visual_numberToString(numberStr, indexes.rowCount());
-      text_drawText(renderer, numberStr, 2, 13 * 16, 16, visual_whiteText, 0,
+      std::array<char, 4> symbols;
+      visual_numberToString(symbols.data(), indexes.rowCount());
+      text_drawText(renderer, symbols.data(), 2, 13 * 16, 16, visual_whiteText, 0,
                     fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Z to add row"), 2, 0, 32,
                     visual_whiteText, 0, fontTileCountW);
@@ -431,11 +437,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         unsigned short y = 16 * (static_cast<unsigned short>(currentRow) + 8);
         if (y >= windowHeight)
           break;
-        char letters[4];
-        hex4(i, letters);
+        hex4(i, symbols.data());
         for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
              hexNumberIndex++)
-          text_drawBigChar(renderer, indexes_charToIdx(letters[hexNumberIndex]),
+          text_drawBigChar(renderer, indexes_charToIdx(symbols[hexNumberIndex]),
                            2, hexNumberIndex * 16, y, visual_whiteText,
                            i == cursorPosition.y);
         orderIndexRow *row = indexes.at(i);
@@ -451,17 +456,17 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
             break;
           currentCollumn++;
           unsigned char orderIndex = row->at(j);
-          char letter1, letter2;
 
-          hex2(orderIndex, letter1, letter2);
+          hex2(orderIndex, symbols[0], symbols[1]);
 
-          text_drawBigChar(renderer, indexes_charToIdx(letter1), 2, x, y,
+          text_drawBigChar(renderer, indexes_charToIdx(symbols[0]), 2, x, y,
                            (i == cursorPosition.y && j == cursorPosition.x) ||
                                    orderIndex != 0
                                ? visual_greenText
                                : SDL_Color{32, 64, 32, 255},
                            i == cursorPosition.y && j == cursorPosition.x);
-          text_drawBigChar(renderer, indexes_charToIdx(letter2), 2, x + 16, y,
+          text_drawBigChar(renderer, indexes_charToIdx(symbols[1]), 2, x + 16,
+                           y,
                            (i == cursorPosition.y && j == cursorPosition.x) ||
                                    orderIndex != 0
                                ? visual_greenText
@@ -469,11 +474,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                            i == cursorPosition.y && j == cursorPosition.x);
 
           if (currentRow == 0) {
-            hex2(j, letter1, letter2);
+            hex2(j, symbols[0], symbols[1]);
 
-            text_drawBigChar(renderer, indexes_charToIdx(letter1), 2, x, y - 16,
-                             visual_whiteText, j == cursorPosition.x);
-            text_drawBigChar(renderer, indexes_charToIdx(letter2), 2, x + 16,
+            text_drawBigChar(renderer, indexes_charToIdx(symbols[0]), 2, x,
+                             y - 16, visual_whiteText, j == cursorPosition.x);
+            text_drawBigChar(renderer, indexes_charToIdx(symbols[1]), 2, x + 16,
                              y - 16, visual_whiteText, j == cursorPosition.x);
           }
         }
@@ -501,12 +506,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     visual_whiteText, 0, 5);
       orderIndexRow *orderRow =
           indexes.at(isAudioPlaying ? currentPattern : currentlyViewedOrder);
-      char letters[4];
+      std::string letters = "1234";
       int cursorY = isAudioPlaying ? currentRow : cursorPosition.y;
-      hex4(isAudioPlaying ? currentPattern : currentlyViewedOrder, letters);
+      hex4(isAudioPlaying ? currentPattern : currentlyViewedOrder, const_cast<char *>(letters.data()));
       for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
            hexNumberIndex++)
-        text_drawBigChar(renderer, indexes_charToIdx(letters[hexNumberIndex]),
+        text_drawBigChar(renderer, indexes_charToIdx(letters.at(hexNumberIndex)),
                          2, (6 + hexNumberIndex) * 16, 16, visual_whiteText, 0);
 
       unsigned char selectedInstrument =
@@ -536,10 +541,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         unsigned short x = currentCollumn * 48;
         if (x > windowWidth)
           break;
-        hex2(orderIndex, letters[0], letters[1]);
-        text_drawBigChar(renderer, indexes_charToIdx(letters[0]), 2, x, 32,
+        hex2(orderIndex, letters.at(0), letters.at(1));
+        text_drawBigChar(renderer, indexes_charToIdx(letters.at(0)), 2, x, 32,
                          visual_greenText, collumnIndex == selectedInstrument);
-        text_drawBigChar(renderer, indexes_charToIdx(letters[1]), 2, x + 16, 32,
+        text_drawBigChar(renderer, indexes_charToIdx(letters.at(1)), 2, x + 16, 32,
                          visual_greenText, collumnIndex == selectedInstrument);
         currentCollumn++;
       };
@@ -569,11 +574,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                              visual_greyText, 0);
 
           if (currentCollumn == 0) {
-            hex2(rowIndex, letters[0], letters[1]);
+            hex2(rowIndex, letters.at(0), letters.at(1));
             for (unsigned char hexNumberIndex = 0; hexNumberIndex < 2;
                  hexNumberIndex++)
               text_drawBigChar(
-                  renderer, indexes_charToIdx(letters[hexNumberIndex]), 2,
+                  renderer, indexes_charToIdx(letters.at(hexNumberIndex)), 2,
                   hexNumberIndex * 16, y, visual_greyText, cursorY == rowIndex);
           }
           if (currentRow == 0) {
@@ -598,13 +603,13 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                       (isAudioPlaying && cursorY == rowIndex),
                   2);
             }
-            hex2(instrumentIndex, letters[0], letters[1]);
-            text_drawBigChar(renderer, indexes_charToIdx(letters[0]), 2,
+            hex2(instrumentIndex, letters.at(0), letters.at(1));
+            text_drawBigChar(renderer, indexes_charToIdx(letters.at(0)), 2,
                              16 * (4 + localCurrentCollumn), 64,
                              visual_greenText,
                              instrumentIndex == selectedInstrument ||
                                  (isAudioPlaying && cursorY == rowIndex));
-            text_drawBigChar(renderer, indexes_charToIdx(letters[1]), 2,
+            text_drawBigChar(renderer, indexes_charToIdx(letters.at(1)), 2,
                              16 * (5 + localCurrentCollumn), 64,
                              visual_greenText,
                              instrumentIndex == selectedInstrument ||
@@ -625,13 +630,13 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                                  (isAudioPlaying && cursorY == rowIndex));
             localCurrentCollumn += 3;
             if (currentViewMode >= 1) {
-              hex2(r->volume, letters[0], letters[1]);
-              text_drawBigChar(renderer, indexes_charToIdx(letters[0]), 2,
+              hex2(r->volume, letters.at(0), letters.at(1));
+              text_drawBigChar(renderer, indexes_charToIdx(letters.at(0)), 2,
                                16 * (4 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 2) ||
                                    (isAudioPlaying && cursorY == rowIndex));
-              text_drawBigChar(renderer, indexes_charToIdx(letters[1]), 2,
+              text_drawBigChar(renderer, indexes_charToIdx(letters.at(1)), 2,
                                16 * (5 + localCurrentCollumn), y,
                                visual_greenText,
                                (rowSeleted && selectedVariable == 3) ||
@@ -744,13 +749,13 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                                                 : visual_yellowText,
                              (rowSeleted && selectedVariable == 4 + (i * 5)) ||
                                  (isAudioPlaying && cursorY == rowIndex));
-            hex4(e.effect, letters);
+            hex4(e.effect, const_cast<char *>(letters.data()));
             for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
                  hexNumberIndex++) {
               text_drawBigChar(
                   renderer,
                   indexes_charToIdx(effectIsNull ? '-'
-                                                 : letters[hexNumberIndex]),
+                                                 : letters.at(hexNumberIndex)),
                   2, 16 * (hexNumberIndex + 5 + localCurrentCollumn), y,
                   effectIsNull       ? visual_greyText
                   : effect_autoreset ? visual_greenText
@@ -801,9 +806,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
           while (indexes.instCount(instCount) < instCount)
             indexes.addInst();
         }
-      char *numberStr = new char[4];
-      visual_numberToString(numberStr, instCount);
-      text_drawText(renderer, numberStr, 2, 13 * 16, 16, visual_whiteText, 0,
+      std::string numberStr;
+      visual_numberToString(numberStr.data(), instCount);
+      text_drawText(renderer, const_cast<char *>(numberStr.c_str()), 2, 13 * 16, 16, visual_whiteText, 0,
                     fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Z to add instrument"), 2, 0,
                     32, visual_whiteText, 0, fontTileCountW);
@@ -832,7 +837,6 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
             y, visual_whiteText, i == cursorPosition.y, fontTileCountW);
         currentRow++;
       }
-      delete[] numberStr;
       break;
     }
 
@@ -851,7 +855,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         unsigned short y = 16 * (static_cast<unsigned short>(currentRow) + 1);
         if (y >= windowHeight / 2)
           break;
-        char letter1, letter2;
+        char letter1;
+        char letter2;
         hex2(i, letter1, letter2);
         text_drawBigChar(
             renderer, indexes_charToIdx(letter1), 2, 0, y, visual_whiteText,
@@ -901,10 +906,10 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         text_drawText(renderer,
                       const_cast<char *>("Choose an instrument to clone to"), 2,
                       0, ceiling + 16, visual_whiteText, 0, fontTileCountW);
-        char digits[3];
-        digits[2] = 0;
-        hex2(cursorPosition.x, digits[0], digits[1]);
-        text_drawText(renderer, digits, 2, 0, ceiling + 48, visual_whiteText, 0,
+        std::string digits = "012";
+        digits.at(2) = 0;
+        hex2(cursorPosition.x, digits.at(0), digits.at(1));
+        text_drawText(renderer, const_cast<char *>(digits.c_str()), 2, 0, ceiling + 48, visual_whiteText, 0,
                       fontTileCountW);
         text_drawText(
             renderer,
@@ -929,12 +934,12 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     visual_whiteText, cursorPosition.y == 0, fontTileCountW);
       text_drawText(renderer, const_cast<char *>("Rows per order"), 2, 0, 80,
                     visual_whiteText, cursorPosition.y == 1, fontTileCountW);
-      char numbers[6];
-      visual_numberToString(numbers, tempo);
-      text_drawText(renderer, numbers, 2, 256, 64, visual_whiteText,
+      std::string numbers = "123456";
+      visual_numberToString(numbers.data(), tempo);
+      text_drawText(renderer, const_cast<char *>(numbers.c_str()), 2, 256, 64, visual_whiteText,
                     cursorPosition.y == 0, fontTileCountW);
-      visual_numberToString(numbers, paternLength);
-      text_drawText(renderer, numbers, 2, 256, 80, visual_whiteText,
+      visual_numberToString(numbers.data(), paternLength);
+      text_drawText(renderer, const_cast<char *>(numbers.c_str()), 2, 256, 80, visual_whiteText,
                     cursorPosition.y == 1, fontTileCountW);
       break;
     }
