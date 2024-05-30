@@ -1097,8 +1097,8 @@ int main(int argc, char *argv[]) {
   }
   documentationDirectory = executableAbsolutePath.parent_path() / "doc";
 #elif defined(_WIN32)
-  { executableAbolutePath = _pgmptr; }
-  documentationDirectory = executableAbolutePath.parent_path() / "doc";
+  { executableAbsolutePath = _pgmptr; }
+  documentationDirectory = executableAbsolutePath.parent_path() / "doc";
 #endif
   if (argc > 1) {
     for (int p = 1; p < argc; p++) {

@@ -30,7 +30,9 @@
 #include "order.hxx"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
+#include <stdexcept>
 #include <filesystem>
+#include <stdexcept>
 #include <string>
 
 /*************************************
@@ -132,6 +134,28 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     }
     return;
   }
+  /***************************
+  *                          *
+  *     Debug menu binds     *
+  *                          *
+  ***************************/
+  if(currentMenu == GlobalMenus::debug_menu) {
+    switch(code) {
+      case 'o': {
+        throw std::out_of_range("Requested in debug menu");
+        break;
+      }
+      case 'l': {
+        throw std::logic_error("Requested in debug menu");
+        break;
+      }
+      case 'r': {
+        throw std::runtime_error("Requested in debug menu");
+        break;
+      }
+      default:break;
+    }
+  }
   /*****************************
   *                            *
   *     Title screen binds     *
@@ -206,6 +230,13 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
   case SDLK_F8: {
     currentMenu = GlobalMenus::log_menu;
     onOpenMenu(cursorPosition);
+    break;
+  }
+  case SDLK_F12: {
+    if(currentKeyStates[SDL_SCANCODE_F11] && currentKeyStates[SDL_SCANCODE_F10]) {
+      currentMenu = GlobalMenus::debug_menu;
+      onOpenMenu(cursorPosition);
+    }
     break;
   }
   case SDLK_UP: {

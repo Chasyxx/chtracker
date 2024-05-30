@@ -224,9 +224,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
           {r, g, b, 255}, 0);
       i++;
     }
-    text_drawText(renderer, "Press Z", 3,
-                  windowWidth / 2 - 96, windowHeight * 2 / 3, visual_whiteText,
-                  0, 10);
+    text_drawText(renderer, "Press Z", 3, windowWidth / 2 - 96,
+                  windowHeight * 2 / 3, visual_whiteText, 0, 10);
     {
       std::string versionString("Version ");
       char str[4];
@@ -245,10 +244,14 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         versionString += '.';
         versionString += c;
       }
-      text_drawText(renderer, versionString.c_str(), 2, 0,
-                    windowHeight - 16, visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, versionString.c_str(), 2, 0, windowHeight - 16,
+                    visual_whiteText, 0, fontTileCountW);
       text_drawText(
-          renderer,"NO WARRANTY for this program, to the extent permitted by law. In no event will the copyright holders be held liable for damages arising from this program. See the GNU General Public License.\nCopyright \xcc 2024 Chase Taylor.",
+          renderer,
+          "NO WARRANTY for this program, to the extent permitted by law. In no "
+          "event will the copyright holders be held liable for damages arising "
+          "from this program. See the GNU General Public License.\nCopyright "
+          "\xcc 2024 Chase Taylor.",
           1, 0, 0, visual_whiteText, 0, fontTileCountW * 2);
     }
   } else {
@@ -282,42 +285,33 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
     }
 
     short xOffset = 0;
-    text_drawText(renderer, "Help!", 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::help_menu,
-                  windowWidth / 8);
+    text_drawText(renderer, "Help!", 1, xOffset, 0, visual_whiteText,
+                  currentMenu == GlobalMenus::help_menu, windowWidth / 8);
     xOffset += 6 * 8;
-    text_drawText(renderer, "Order", 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::order_menu,
-                  windowWidth / 8);
+    text_drawText(renderer, "Order", 1, xOffset, 0, visual_whiteText,
+                  currentMenu == GlobalMenus::order_menu, windowWidth / 8);
     xOffset += 6 * 8;
-    text_drawText(renderer, "Pat.", 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::pattern_menu,
-                  windowWidth / 8);
+    text_drawText(renderer, "Pat.", 1, xOffset, 0, visual_whiteText,
+                  currentMenu == GlobalMenus::pattern_menu, windowWidth / 8);
     xOffset += 5 * 8;
-    text_drawText(renderer, "Inst.", 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::instrument_menu,
-                  windowWidth / 8);
+    text_drawText(renderer, "Inst.", 1, xOffset, 0, visual_whiteText,
+                  currentMenu == GlobalMenus::instrument_menu, windowWidth / 8);
     xOffset += 6 * 8;
-    text_drawText(renderer, "OrdMan.", 1, xOffset, 0,
-                  visual_whiteText,
+    text_drawText(renderer, "OrdMan.", 1, xOffset, 0, visual_whiteText,
                   currentMenu == GlobalMenus::order_management_menu,
                   windowWidth / 8);
     xOffset += 8 * 8;
-    text_drawText(renderer, "Options", 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::options_menu,
-                  windowWidth / 8);
+    text_drawText(renderer, "Options", 1, xOffset, 0, visual_whiteText,
+                  currentMenu == GlobalMenus::options_menu, windowWidth / 8);
     xOffset += 8 * 8;
-    text_drawText(renderer, "File", 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::file_menu,
-                  windowWidth / 8);
+    text_drawText(renderer, "File", 1, xOffset, 0, visual_whiteText,
+                  currentMenu == GlobalMenus::file_menu, windowWidth / 8);
     xOffset += 5 * 8;
-    text_drawText(renderer, "Log", 1, xOffset, 0,
-                  visual_whiteText, currentMenu == GlobalMenus::log_menu,
-                  windowWidth / 8);
+    text_drawText(renderer, "Log", 1, xOffset, 0, visual_whiteText,
+                  currentMenu == GlobalMenus::log_menu, windowWidth / 8);
     xOffset += 4 * 8;
     if (hasUnsavedChanges)
-      text_drawText(renderer, "Unsaved changes", 1, xOffset,
-                    0,
+      text_drawText(renderer, "Unsaved changes", 1, xOffset, 0,
                     currentMenu == GlobalMenus::quit_confirmation_menu
                         ? visual_redText
                         : visual_yellowText,
@@ -332,8 +326,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
     SDL_RenderFillRect(renderer, &borderRectangle);
     switch (currentMenu) {
     case GlobalMenus::main_menu: {
-      text_drawText(renderer, "Error", 3, 18, 18,
-                    visual_redText, 1, 10);
+      text_drawText(renderer, "Error", 3, 18, 18, visual_redText, 1, 10);
       break;
     }
 
@@ -364,15 +357,15 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
           cmd::log::error("Couldn't open help");
           couldntOpenHelp = true;
         }
-        text_drawText(renderer, "Couldn't open help", 2, 0,
-                      16, visual_redText, 1, 19);
+        text_drawText(renderer, "Couldn't open help", 2, 0, 16, visual_redText,
+                      1, 19);
         break;
       } else
         couldntOpenHelp = false;
       helpFile.seekg(0);
       if (helpFile.fail()) {
-        text_drawText(renderer, "Couldn't read help", 2, 0,
-                      16, visual_redText, 1, 19);
+        text_drawText(renderer, "Couldn't read help", 2, 0, 16, visual_redText,
+                      1, 19);
         break;
       }
       unsigned int undrawnLines = cursorPosition.y;
@@ -408,22 +401,20 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
        *****************************************************/
 
     case GlobalMenus::order_menu: {
-      text_drawText(renderer, "Order rows: ", 2, 0, 16,
-                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "Order rows: ", 2, 0, 16, visual_whiteText, 0,
+                    fontTileCountW);
       std::array<char, 4> symbols;
       visual_numberToString(symbols.data(), indexes.rowCount());
-      text_drawText(renderer, symbols.data(), 2, 13 * 16, 16, visual_whiteText, 0,
+      text_drawText(renderer, symbols.data(), 2, 13 * 16, 16, visual_whiteText,
+                    0, fontTileCountW);
+      text_drawText(renderer, "Z to add row", 2, 0, 32, visual_whiteText, 0,
                     fontTileCountW);
-      text_drawText(renderer, "Z to add row", 2, 0, 32,
+      text_drawText(renderer, "X to remove selected row", 2, 0, 48,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "X to remove selected row", 2,
-                    0, 48, visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    "W to increment selected order", 2, 0,
-                    64, visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    "S to decrement selected order", 2, 0,
-                    80, visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "W to increment selected order", 2, 0, 64,
+                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "S to decrement selected order", 2, 0, 80,
+                    visual_whiteText, 0, fontTileCountW);
       unsigned short startingRow = static_cast<unsigned short>(
           std::max(0, static_cast<int>(cursorPosition.y) -
                           static_cast<int>(fontTileCountH / 2)));
@@ -491,23 +482,22 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
     case GlobalMenus::pattern_menu: {
       barrier(renderer, 48, windowWidth);
       if (orders.tableCount() == 0) {
-        text_drawText(
-            renderer,
-            "Add instruments in the Inst. tab (F4)", 2, 0,
-            16, visual_whiteText, 0, fontTileCountW);
+        text_drawText(renderer, "Add instruments in the Inst. tab (F4)", 2, 0,
+                      16, visual_whiteText, 0, fontTileCountW);
         break;
       }
-      text_drawText(renderer, "Order", 2, 0, 16,
-                    visual_whiteText, 0, 5);
+      text_drawText(renderer, "Order", 2, 0, 16, visual_whiteText, 0, 5);
       orderIndexRow *orderRow =
           indexes.at(isAudioPlaying ? currentPattern : currentlyViewedOrder);
       std::string letters = "1234";
       int cursorY = isAudioPlaying ? currentRow : cursorPosition.y;
-      hex4(isAudioPlaying ? currentPattern : currentlyViewedOrder, letters.data());
+      hex4(isAudioPlaying ? currentPattern : currentlyViewedOrder,
+           letters.data());
       for (unsigned char hexNumberIndex = 0; hexNumberIndex < 4;
            hexNumberIndex++)
-        text_drawBigChar(renderer, indexes_charToIdx(letters.at(hexNumberIndex)),
-                         2, (6 + hexNumberIndex) * 16, 16, visual_whiteText, 0);
+        text_drawBigChar(renderer,
+                         indexes_charToIdx(letters.at(hexNumberIndex)), 2,
+                         (6 + hexNumberIndex) * 16, 16, visual_whiteText, 0);
 
       unsigned char selectedInstrument =
           cursorPosition.x /
@@ -539,8 +529,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         hex2(orderIndex, letters.at(0), letters.at(1));
         text_drawBigChar(renderer, indexes_charToIdx(letters.at(0)), 2, x, 32,
                          visual_greenText, collumnIndex == selectedInstrument);
-        text_drawBigChar(renderer, indexes_charToIdx(letters.at(1)), 2, x + 16, 32,
-                         visual_greenText, collumnIndex == selectedInstrument);
+        text_drawBigChar(renderer, indexes_charToIdx(letters.at(1)), 2, x + 16,
+                         32, visual_greenText,
+                         collumnIndex == selectedInstrument);
         currentCollumn++;
       };
       currentCollumn = 0;
@@ -782,8 +773,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
        *****************************************************/
 
     case GlobalMenus::instrument_menu: {
-      text_drawText(renderer, "Instruments: ", 2, 0, 16,
-                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "Instruments: ", 2, 0, 16, visual_whiteText, 0,
+                    fontTileCountW);
       unsigned char orderTableCount = orders.tableCount();
       unsigned char instrumentCount = instruments.inst_count();
       unsigned char orderIndexCount =
@@ -803,15 +794,14 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         }
       std::string numberStr;
       visual_numberToString(numberStr.data(), instCount);
-      text_drawText(renderer, numberStr.c_str(), 2, 13 * 16, 16, visual_whiteText, 0,
-                    fontTileCountW);
-      text_drawText(renderer, "Z to add instrument", 2, 0,
-                    32, visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    "X to remove selected instrument", 2, 0,
-                    48, visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "C to change instrument type",
-                    2, 0, 64, visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, numberStr.c_str(), 2, 13 * 16, 16,
+                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "Z to add instrument", 2, 0, 32, visual_whiteText,
+                    0, fontTileCountW);
+      text_drawText(renderer, "X to remove selected instrument", 2, 0, 48,
+                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "C to change instrument type", 2, 0, 64,
+                    visual_whiteText, 0, fontTileCountW);
       unsigned char startingRow = static_cast<unsigned char>(
           std::max(0, static_cast<short>(cursorPosition.y) -
                           static_cast<unsigned char>(fontTileCountH / 2)));
@@ -892,20 +882,18 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       int ceiling = fontTileCountH / 2 * 16;
       barrier(renderer, ceiling, windowWidth);
       if (cursorPosition.subMenu == 0) {
-        text_drawText(renderer,
-                      "X to delete selected order", 2, 0,
+        text_drawText(renderer, "X to delete selected order", 2, 0,
                       ceiling + 16, visual_whiteText, 0, fontTileCountW);
-        text_drawText(renderer, "C to clone selected order",
-                      2, 0, ceiling + 32, visual_whiteText, 0, fontTileCountW);
+        text_drawText(renderer, "C to clone selected order", 2, 0, ceiling + 32,
+                      visual_whiteText, 0, fontTileCountW);
       } else {
-        text_drawText(renderer,
-                      "Choose an instrument to clone to", 2,
-                      0, ceiling + 16, visual_whiteText, 0, fontTileCountW);
+        text_drawText(renderer, "Choose an instrument to clone to", 2, 0,
+                      ceiling + 16, visual_whiteText, 0, fontTileCountW);
         std::string digits = "012";
         digits.at(2) = 0;
         hex2(cursorPosition.x, digits.at(0), digits.at(1));
-        text_drawText(renderer, digits.c_str(), 2, 0, ceiling + 48, visual_whiteText, 0,
-                      fontTileCountW);
+        text_drawText(renderer, digits.c_str(), 2, 0, ceiling + 48,
+                      visual_whiteText, 0, fontTileCountW);
         text_drawText(
             renderer,
             getTypeName(instruments.at(cursorPosition.x)->get_type(), false), 2,
@@ -921,14 +909,14 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
        *****************************************************/
 
     case GlobalMenus::options_menu: {
-      text_drawText(renderer, "W to increase", 2, 0, 16,
-                    visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "S to decrease", 2, 0, 32,
-                    visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "Rows per minute", 2, 0, 64,
-                    visual_whiteText, cursorPosition.y == 0, fontTileCountW);
-      text_drawText(renderer, "Rows per order", 2, 0, 80,
-                    visual_whiteText, cursorPosition.y == 1, fontTileCountW);
+      text_drawText(renderer, "W to increase", 2, 0, 16, visual_whiteText, 0,
+                    fontTileCountW);
+      text_drawText(renderer, "S to decrease", 2, 0, 32, visual_whiteText, 0,
+                    fontTileCountW);
+      text_drawText(renderer, "Rows per minute", 2, 0, 64, visual_whiteText,
+                    cursorPosition.y == 0, fontTileCountW);
+      text_drawText(renderer, "Rows per order", 2, 0, 80, visual_whiteText,
+                    cursorPosition.y == 1, fontTileCountW);
       std::string numbers = "123456";
       visual_numberToString(numbers.data(), tempo);
       text_drawText(renderer, numbers.c_str(), 2, 256, 64, visual_whiteText,
@@ -945,22 +933,21 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
      ****************************************************/
     case GlobalMenus::file_menu: {
       if (errorText[0] == 0) {
-        text_drawText(renderer,
-                      "Welcome to the FILE PICKER", 2, 0,
-                      16, visual_whiteText, 0, fontTileCountW);
+        text_drawText(renderer, "Welcome to the FILE PICKER", 2, 0, 16,
+                      visual_whiteText, 0, fontTileCountW);
       } else {
-        text_drawText(renderer, errorText, 2, 0, 16,
-                      visual_redText, 0, fontTileCountW);
+        text_drawText(renderer, errorText, 2, 0, 16, visual_redText, 0,
+                      fontTileCountW);
       }
       barrier(renderer, 32, windowWidth);
-      text_drawText(renderer, "S to save a file", 2, 0, 48,
+      text_drawText(renderer, "S to save a file", 2, 0, 48, visual_whiteText, 0,
+                    fontTileCountW);
+      text_drawText(renderer, "Return to load a file", 2, 0, 64,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "Return to load a file", 2, 0,
-                    64, visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "R to render", 2, 0, 80,
+      text_drawText(renderer, "R to render", 2, 0, 80, visual_whiteText, 0,
+                    fontTileCountW);
+      text_drawText(renderer, "ESC to go to parent dir.", 2, 0, 96,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "ESC to go to parent dir.", 2,
-                    0, 96, visual_whiteText, 0, fontTileCountW);
       text_drawText(
           renderer,
           const_cast<char *>(
@@ -979,13 +966,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
             if (entry.path().filename().string()[0] == '.')
               continue;
             if (i >= initialEntry) {
-              text_drawText(
-                  renderer,
-                  entry.path().filename().string().c_str(),
-                  2, 0, y,
-                  entry.is_directory() ? SDL_Color{63, 127, 255, 255}
-                                       : visual_greenText,
-                  i == static_cast<int>(cursorPosition.y), INT_MAX);
+              text_drawText(renderer, entry.path().filename().string().c_str(),
+                            2, 0, y,
+                            entry.is_directory() ? SDL_Color{63, 127, 255, 255}
+                                                 : visual_greenText,
+                            i == static_cast<int>(cursorPosition.y), INT_MAX);
               y += 16;
             }
             i++;
@@ -999,8 +984,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         errorText = const_cast<char *>("Filesystem error reading directory");
       }
       if (i >= initialEntry && y < windowHeight)
-        text_drawText(renderer, "..", 2, 0, y,
-                      visual_yellowText,
+        text_drawText(renderer, "..", 2, 0, y, visual_yellowText,
                       i == static_cast<int>(cursorPosition.y), fontTileCountW);
       break;
     }
@@ -1010,21 +994,20 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
        ************/
 
     case GlobalMenus::save_file_menu: {
-      text_drawText(renderer, "Saving to", 2, 0, 16,
-                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "Saving to", 2, 0, 16, visual_whiteText, 0,
+                    fontTileCountW);
       text_drawText(
           renderer,
           const_cast<char *>(
               (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
           2, 160, 16, visual_whiteText, 0, fontTileCountW - 10);
       if (cursorPosition.subMenu == 1)
-        text_drawText(renderer,
-                      "That file exists, are you sure?", 2,
-                      0, windowHeight - 16, visual_redText, 0, fontTileCountW);
-      text_drawText(renderer, "Type a filename:", 2, 0, 128,
-                    visual_whiteText, 0, fontTileCountW - 10);
-      text_drawText(renderer, saveFileName.c_str(), 2, 0,
-                    144, visual_whiteText, 0, fontTileCountW - 10);
+        text_drawText(renderer, "That file exists, are you sure?", 2, 0,
+                      windowHeight - 16, visual_redText, 0, fontTileCountW);
+      text_drawText(renderer, "Type a filename:", 2, 0, 128, visual_whiteText,
+                    0, fontTileCountW - 10);
+      text_drawText(renderer, saveFileName.c_str(), 2, 0, 144, visual_whiteText,
+                    0, fontTileCountW - 10);
       break;
     }
 
@@ -1033,24 +1016,22 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
        **************/
 
     case GlobalMenus::render_menu: {
-      text_drawText(renderer, "Rendering to", 2, 0, 16,
-                    visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer, "Rendering to", 2, 0, 16, visual_whiteText, 0,
+                    fontTileCountW);
       text_drawText(
           renderer,
           const_cast<char *>(
               (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
           2, 16 * 13, 16, visual_whiteText, 0, fontTileCountW - 13);
       if (cursorPosition.subMenu == 1)
-        text_drawText(renderer,
-                      "That file exists, are you sure?", 2,
-                      0, windowHeight - 32, visual_redText, 0, fontTileCountW);
-      text_drawText(
-          renderer, "Program may not respond during render",
-          2, 0, windowHeight - 16, visual_yellowText, 0, fontTileCountW);
-      text_drawText(renderer, "Type a filename:", 2, 0, 128,
+        text_drawText(renderer, "That file exists, are you sure?", 2, 0,
+                      windowHeight - 32, visual_redText, 0, fontTileCountW);
+      text_drawText(renderer, "Program may not respond during render", 2, 0,
+                    windowHeight - 16, visual_yellowText, 0, fontTileCountW);
+      text_drawText(renderer, "Type a filename:", 2, 0, 128, visual_whiteText,
+                    0, fontTileCountW - 10);
+      text_drawText(renderer, renderFileName.c_str(), 2, 0, 144,
                     visual_whiteText, 0, fontTileCountW - 10);
-      text_drawText(renderer, renderFileName.c_str(), 2, 0,
-                    144, visual_whiteText, 0, fontTileCountW - 10);
       break;
     }
 
@@ -1062,12 +1043,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       text_drawText(renderer, "Unsaved changes", 2,
                     (windowWidth - (15 * 16)) / 2, windowHeight / 2 - 16,
                     visual_redText, 0, fontTileCountW);
-      text_drawText(renderer,
-                    "Press ESC again to quit anyway", 2,
+      text_drawText(renderer, "Press ESC again to quit anyway", 2,
                     (windowWidth - (30 * 16)) / 2, windowHeight / 2,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "Press F7 to go to file menu",
-                    2, (windowWidth - (27 * 16)) / 2, windowHeight / 2 + 16,
+      text_drawText(renderer, "Press F7 to go to file menu", 2,
+                    (windowWidth - (27 * 16)) / 2, windowHeight / 2 + 16,
                     visual_whiteText, 0, fontTileCountW);
       break;
     }
@@ -1092,28 +1072,26 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         bool invert = l.printed && (millis & 1024) == 1024;
         switch (l.severity) {
         case 0: {
-          text_drawText(renderer, "DEBUG", 1, 0, y,
-                        visual_whiteText, invert, 5);
+          text_drawText(renderer, "DEBUG", 1, 0, y, visual_whiteText, invert,
+                        5);
           break;
         }
         case 1: {
-          text_drawText(renderer, "NOTE ", 1, 0, y,
-                        visual_blueText, invert, 5);
+          text_drawText(renderer, "NOTE ", 1, 0, y, visual_blueText, invert, 5);
           break;
         }
         case 2: {
-          text_drawText(renderer, " WARN", 1, 0, y,
-                        visual_yellowText, invert, 5);
+          text_drawText(renderer, " WARN", 1, 0, y, visual_yellowText, invert,
+                        5);
           break;
         }
         case 3: {
-          text_drawText(renderer, "ERROR", 1, 0, y,
-                        visual_redText, invert, 5);
+          text_drawText(renderer, "ERROR", 1, 0, y, visual_redText, invert, 5);
           break;
         }
         case 4: {
-          text_drawText(renderer, "CRIT!", 1, 0, y,
-                        visual_magentaText, invert, 5);
+          text_drawText(renderer, "CRIT!", 1, 0, y, visual_magentaText, invert,
+                        5);
           break;
         }
         default:
@@ -1123,6 +1101,18 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                       l.printed ? visual_whiteText : visual_greyText, 0,
                       windowWidth / 8 - 6);
       }
+      break;
+    }
+      /****************************************************
+       *                                                  *
+       *                    DEBUG MENU                    *
+       *                                                  *
+       ***************************************************/
+    case GlobalMenus::debug_menu: {
+      text_drawText(renderer, "[O]ut_of_range", 2, 0, 16, visual_whiteText, 0, 15);
+      text_drawText(renderer, "[L]ogic_error", 2, 0, 32, visual_whiteText, 0, 14);
+      text_drawText(renderer, "[R]untime_error", 2, 0, 48, visual_whiteText, 0, 16);
+      break;
     }
     }
   }
