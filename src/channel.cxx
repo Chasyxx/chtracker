@@ -213,7 +213,7 @@ unsigned char instrumentStorage::inst_count() {
     return instruments.size();
 }
 void instrumentStorage::remove_inst(unsigned char idx) {
-    if(idx>=inst_count()) throw std::out_of_range("orderStorage::remove_table");
+    if(idx>=inst_count()) throw std::out_of_range("instrumentStorage::remove_inst");
     
     for(unsigned char i = inst_count()-1; i>idx; i--) {
         audioChannel inst = instruments.back();

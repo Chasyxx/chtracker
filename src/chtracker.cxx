@@ -40,6 +40,7 @@
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_video.h>
 #include <algorithm>
+#include <array>
 #include <climits>
 #include <cstdlib>
 #include <cstring>
@@ -51,7 +52,6 @@
 #include <string>
 #include <strings.h>
 #include <vector>
-#include <array>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -126,13 +126,14 @@ instrumentStorage instrumentSystem;
  *********/
 
 namespace gui {
+std::array<Sint16, AUDIO_SAMPLE_COUNT> waveformDisplay;
 CursorPos /*******/ cursorPosition;
 GlobalMenus /*****/ currentMenu = GlobalMenus::main_menu;
 unsigned short /**/ patternMenuOrderIndex = 0;
 char /************/ patternMenuViewMode = 3;
 int /*************/ lastWindowWidth;
 int /*************/ lastWindowHeight;
-std::array<Sint16,AUDIO_SAMPLE_COUNT> /**/ waveformDisplay;
+bool /************/ debugMenuUsage;
 } // namespace gui
 
 /****************
@@ -804,15 +805,15 @@ void init() {
 #else
   fileMenu_directoryPath = "/";
 #endif
-  SDL_AudioSpec audioSpec;
+  SDL_AudioSpec preferred;
+  SDL_AudioSpec obatined;
 
-  audioSpec.freq = 48000;
-  audioSpec.format = AUDIO_S16;
-  audioSpec.channels = 1;
-  audioSpec.samples = AUDIO_SAMPLE_COUNT;
-  audioSpec.callback = audioCallback;
-  audio::deviceID = SDL_OpenAudioDevice(NULL, 0, &audioSpec, NULL,
-                                        SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
+  preferred.freq = 48000;
+  preferred.format = AUDIO_S16;
+  preferred.channels = 1;
+  preferred.samples = AUDIO_SAMPLE_COUNT;
+  preferred.callback = audioCallback;
+  audio::deviceID = SDL_OpenAudioDevice(NULL, 0, &preferred, &obatined, 0);
   if (audio::deviceID == 0) {
     cmd::log::critical("Couldn't open audio: {}", SDL_GetError());
     quit(1);
@@ -895,13 +896,14 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
     break;
   }
   case SDL_KEYDOWN: {
-    onSDLKeyDown(
-        event, quit, gui::currentMenu, gui::cursorPosition,
-        saveFileMenu_fileName, renderMenu_fileName, fileMenu_directoryPath,
-        fileMenu_errorText, global_unsavedChanges, limitX, limitY,
-        audio::freeze, audio::isFrozen, gui::patternMenuOrderIndex,
-        gui::patternMenuViewMode, audio::isPlaying, instrumentSystem, indexes,
-        orders, audio::pattern, patternLength, currentKeyStates, audio::tempo);
+    onSDLKeyDown(event, quit, gui::currentMenu, gui::cursorPosition,
+                 saveFileMenu_fileName, renderMenu_fileName,
+                 fileMenu_directoryPath, fileMenu_errorText,
+                 global_unsavedChanges, limitX, limitY, audio::freeze,
+                 audio::isFrozen, gui::patternMenuOrderIndex,
+                 gui::patternMenuViewMode, audio::isPlaying, instrumentSystem,
+                 indexes, orders, audio::pattern, patternLength,
+                 currentKeyStates, audio::tempo, gui::debugMenuUsage);
     break;
   }
   case SDL_KEYUP: {
@@ -969,11 +971,14 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
 
 void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
   cmd::log::critical("{} {}", typeid(e).name(), e.what());
-  cmd::log::critical(
-      "Please create an issue at https://github.com/Chasyxx/chtracker with "
-      "details of the error and what you were doing when the error ocurred.");
+  cmd::log::critical(gui::debugMenuUsage
+                         ? "Debug menu used; do not report."
+                         : "Please create an issue at "
+                           "https://github.com/Chasyxx/chtracker with "
+                           "details of the error and what you were doing when "
+                           "the error occurred.");
   try {
-    SDL_SetWindowSize(w, 640, 256);
+    SDL_SetWindowSize(w, 768, 512);
     SDL_PauseAudioDevice(audio::deviceID, 1);
     SDL_CloseAudioDevice(audio::deviceID);
     audio::time = 0;
@@ -1003,21 +1008,30 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
         break;
       SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
       SDL_RenderClear(r);
-      text_drawText(r, "UHOH! chTRACKER has EXCEPTIONED!",
-                    2, 16, 16, visual_redText, 1, 38);
-      text_drawText(r, typeid(e).name(), 2, 16, 32,
-                    visual_redText, 0, 38);
-      text_drawText(r, e.what(), 2, 16, 64, visual_redText,
-                    0, 38);
-      text_drawText(
-          r,
-              "Please create an issue at\n"
-              "https://github.com/Chasyxx/chtracker\n"
-              "with details of the error and what\n"
-              "you were doing when the error ocurred.\n\n"
-              "Press a key up to 8 times to abort.",
-          2, 16, 128, visual_whiteText, 0, 38);
-      //                                                                                                                                             "12345678901234r567890123456789012345678"
+      text_drawText(r, "Uh-oh! chTRACKER has encountered an error!", 2, 16, 16,
+                    visual_redText, 1, 46);
+      text_drawText(r, typeid(e).name(), 2, 16, 32, visual_redText, 0, 38);
+      text_drawText(r, e.what(), 2, 16, 64, visual_redText, 0, 38);
+      text_drawText(r,
+                    //"----------==========[[[[[[[[[[]]]]]]]]]]123456"
+                    gui::debugMenuUsage
+                        ? "Debug menu used; do not report.\n\n"
+                          "Press a key up to 8 times to abort."
+                        : "Please create an issue at\n"
+                          "https://github.com/Chasyxx/chtracker\n"
+                          "with details of the error and what you were\n"
+                          "doing when the error occurred.\n\n"
+                          "Press a key up to 8 times to abort.",
+                    2, 16, 128, visual_whiteText, 0, 46);
+      for (int i = 0; i < 34; i++) {
+        if (static_cast<ssize_t>(cmd::log::logs.size()) - 1 - i < 0)
+          break;
+        struct log l = cmd::log::logs.at(cmd::log::logs.size() - 1 - i);
+        text_drawBigChar(r, indexes_charToIdx(hex(l.severity)), 1, 0,
+                         240 + i * 8, visual_whiteText, 1);
+        text_drawText(r, l.msg.c_str(), 1, 16, 240 + i * 8, visual_whiteText, 0,
+                      256);
+      }
       SDL_RenderPresent(r);
     }
   } catch (std::exception &e2) {
@@ -1027,6 +1041,10 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
   cmd::log::error("Aborting!");
   abort();
 }
+
+/**************************
+ * Command-line functions *
+ **************************/
 
 void printHelp() {
 #define pH(x) std::cout << x
@@ -1080,6 +1098,10 @@ void processCommandLineArgumentAfterInit(const char **argv,
   }
 }
 
+/*****************
+ * Main function *
+ *****************/
+
 int main(int argc, char *argv[]) {
 #if defined(__linux__)
   {
@@ -1114,8 +1136,8 @@ int main(int argc, char *argv[]) {
   }
 #endif
   cmd::log::notice("Welcome to chTRACKER!");
-  cmd::log::debug("The program path is " + executableAbsolutePath.string());
-  cmd::log::debug("The dynamic docdir is " + documentationDirectory.string());
+  cmd::log::debug("The program path is {}", executableAbsolutePath.string());
+  cmd::log::debug("The dynamic docdir is {}", documentationDirectory.string());
   cmd::log::debug("Starting SDL");
   if (SDL_InitSubSystem(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) <
       0) {
@@ -1147,12 +1169,15 @@ int main(int argc, char *argv[]) {
                                           p);
     }
   }
+#ifdef DEBUG
+  sdlLoop(renderer, window);
+#else
   try {
     sdlLoop(renderer, window);
   } catch (std::exception &error) {
-    // how do i get the name of the exception
     errorScreen(renderer, window, error);
   }
+#endif
   quit(0);
   return 0;
 }

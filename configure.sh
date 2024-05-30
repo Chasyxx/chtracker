@@ -356,7 +356,7 @@ visual.o: visual/font.i visual/visual.c
 visual/font.i: visual/font.pl visual/font.charset
 	@\$(MAKE) -C visual font.i
 
-log.oxx: log.cxx
+log.oxx: log.cxx headers/log.hxx
 	\$(CXX) \$(CXXFLAGS) -o \$@ \$<
 
 order.oxx: order.cxx

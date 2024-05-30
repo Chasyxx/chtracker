@@ -26,6 +26,7 @@
  ***************************************/
 
 #include "channel.hxx"
+#include "log.hxx"
 #include "main.h"
 #include "order.hxx"
 #include <SDL2/SDL_events.h>
@@ -72,7 +73,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
                   orderIndexStorage &indexes, orderStorage &orders,
                   const unsigned short audio_pattern,
                   unsigned short &patternLength, const Uint8 *currentKeyStates,
-                  unsigned short &audio_tempo) {
+                  unsigned short &audio_tempo, bool &debugMenuUsage) {
   SDL_Keysym ks = event->key.keysym;
   SDL_Keycode code = ks.sym;
   /********************************
@@ -151,6 +152,42 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
       }
       case 'r': {
         throw std::runtime_error("Requested in debug menu");
+        break;
+      }
+      case 'n': {
+        cmd::log::notice("Debug menu notice log");
+        break;
+      }
+      case 'w': {
+        cmd::log::warning("Debug menu warning log");
+        break;
+      }
+      case 'e': {
+        cmd::log::error("Debug menu error log");
+        break;
+      }
+      case 'c': {
+        cmd::log::critical("Debug menu critical log");
+        break;
+      }
+      case 'f': {
+        debugMenuUsage = true;
+        freezeAudio = !freezeAudio;
+        break;
+      }
+      case 'd': {
+        debugMenuUsage = true;
+        orders.removeTable(orders.tableCount()-1);
+        break;
+      }
+      case 'i': {
+        debugMenuUsage = true;
+        indexes.removeInst(indexes.instCount(0)-1);
+        break;
+      }
+      case 's': {
+        debugMenuUsage = true;
+        instrumentSystem.remove_inst(instrumentSystem.inst_count()-1);
         break;
       }
       default:break;

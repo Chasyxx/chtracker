@@ -784,7 +784,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
       if (instCount > 0)
         if (orderTableCount < instCount || instrumentCount < instCount ||
             orderIndexCount < instCount) {
-          std::cerr << "Corrected an instrument length issue!" << std::endl;
+          cmd::log::warning("Corrected instrument length inconsistencies");
           while (orders.tableCount() < instCount)
             orders.at(orders.addTable())->add_order();
           while (instruments.inst_count() < instCount)
@@ -1109,9 +1109,22 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
        *                                                  *
        ***************************************************/
     case GlobalMenus::debug_menu: {
-      text_drawText(renderer, "[O]ut_of_range", 2, 0, 16, visual_whiteText, 0, 15);
-      text_drawText(renderer, "[L]ogic_error", 2, 0, 32, visual_whiteText, 0, 14);
-      text_drawText(renderer, "[R]untime_error", 2, 0, 48, visual_whiteText, 0, 16);
+      text_drawText(renderer, "DEBUG MENU", 4, 0, 16, visual_greenText, 0,
+                    fontTileCountW / 2);
+      text_drawText(renderer,
+                    "[O]ut_of_range  exception\n"
+                    "[L]ogic_error   exception\n"
+                    "[R]untime_error exception",
+                    2, 0, 48, visual_redText, 0, fontTileCountW);
+      text_drawText(renderer,
+                    "[N]otice [W]arning [E]rror [C]ritical"
+                    "(un)[F]reeze audio",
+                    2, 0, 96, visual_whiteText, 0, fontTileCountW);
+      text_drawText(renderer,
+                    "[D]ismantle an order table\n"
+                    "d[I]smantle an index row\n"
+                    "di[S]mantle an instrument",
+                    2, 0, 118, visual_yellowText, 0, fontTileCountW);
       break;
     }
     }

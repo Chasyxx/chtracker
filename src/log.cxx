@@ -19,11 +19,13 @@
 */
 
 #include <vector>
+#include <mutex>
 #include "log.hxx"
 
 namespace cmd {
 namespace log {
 int level = 1;
 std::vector<struct log> logs;
+std::mutex logLock;
 } // namespace log
 } // namespace cmd

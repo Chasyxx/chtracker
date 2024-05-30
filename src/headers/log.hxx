@@ -27,6 +27,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <mutex>
 
 static constexpr char const *severityStrings[] = {
     "\x1b[1m[debug]\x1b[0m", "\x1b[1;34m[note ]\x1b[0m",
@@ -57,9 +58,11 @@ namespace log {
  */
 extern int level;
 extern std::vector<struct log> logs;
+extern std::mutex logLock;
 template <typename... Args>
 void log(int severity, std::string &format, Args &&...args) {
   std::string msg = fmt::format(format, std::forward<Args>(args)...);
+  std::lock_guard<std::mutex> lock(logLock);
   if (level <= severity) {
     logs.push_back(
         {.msg = msg, .severity = static_cast<char>(severity), .printed = true});
