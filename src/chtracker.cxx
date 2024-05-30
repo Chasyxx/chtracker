@@ -967,7 +967,7 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
   }
 }
 
-void errorScreen(SDL_Renderer *r, SDL_Window *w, std::exception &e) {
+void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
   cmd::log::critical("{} {}", typeid(e).name(), e.what());
   cmd::log::critical(
       "Please create an issue at https://github.com/Chasyxx/chtracker with "
@@ -1011,11 +1011,11 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, std::exception &e) {
                     0, 38);
       text_drawText(
           r,
-          const_cast<char *>(
-              "Please create an issue "
-              "at\nhttps://github.com/Chasyxx/chtracker\nwith details of the "
-              "error and what\nyou were doing when the error ocurred.\n\nPress "
-              "a key up to 8 times to abort."),
+              "Please create an issue at\n"
+              "https://github.com/Chasyxx/chtracker\n"
+              "with details of the error and what\n"
+              "you were doing when the error ocurred.\n\n"
+              "Press a key up to 8 times to abort.",
           2, 16, 128, visual_whiteText, 0, 38);
       //                                                                                                                                             "12345678901234r567890123456789012345678"
       SDL_RenderPresent(r);
