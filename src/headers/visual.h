@@ -100,7 +100,7 @@ void text_drawBigChar(SDL_Renderer *r, int idx, int size, int x, int y,
  * \param collums Max collums to print the text. When it reaches this many
  * collums it starts a new row (potentially splitting aword)
  */
-void text_drawText(SDL_Renderer *r, char *str, int size, int x, int y,
+void text_drawText(SDL_Renderer *r, const char *str, int size, int x, int y,
                    SDL_Color color, int invert, int collums);
 
 /**

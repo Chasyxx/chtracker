@@ -107,7 +107,7 @@ void text_drawBigChar(SDL_Renderer *r, int idx, int size, int x, int y,
   }
 }
 
-void text_drawText(SDL_Renderer *r, char *str, int size, int x, int y,
+void text_drawText(SDL_Renderer *r, const char *str, int size, int x, int y,
                    SDL_Color color, int invert, int collums) {
   int i = 0;
   int X = 0;

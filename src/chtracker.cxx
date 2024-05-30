@@ -1003,11 +1003,11 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, std::exception &e) {
         break;
       SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
       SDL_RenderClear(r);
-      text_drawText(r, const_cast<char *>("UHOH! chTRACKER has EXCEPTIONED!"),
+      text_drawText(r, "UHOH! chTRACKER has EXCEPTIONED!",
                     2, 16, 16, visual_redText, 1, 38);
-      text_drawText(r, const_cast<char *>(typeid(e).name()), 2, 16, 32,
+      text_drawText(r, typeid(e).name(), 2, 16, 32,
                     visual_redText, 0, 38);
-      text_drawText(r, const_cast<char *>(e.what()), 2, 16, 64, visual_redText,
+      text_drawText(r, e.what(), 2, 16, 64, visual_redText,
                     0, 38);
       text_drawText(
           r,
