@@ -25,9 +25,9 @@
 
 #include <fmt/core.h>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
 static constexpr char const *severityStrings[] = {
     "\x1b[1m[debug]\x1b[0m", "\x1b[1;34m[note ]\x1b[0m",
