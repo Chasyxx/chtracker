@@ -26,6 +26,10 @@
 #include "order.hxx"
 #include <vector>
 
+namespace audio {
+    extern double audioChannelFrequency;
+}
+
 enum class audioChannelType {
     null,
     lfsr8,

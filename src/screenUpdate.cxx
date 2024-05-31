@@ -148,7 +148,7 @@ void barrierVertical(SDL_Renderer *r, unsigned int x, int windowHeight) {
 void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                   int &lastWindowWidth, int &lastWindowHeight,
                   const GlobalMenus currentMenu, const bool isAudioPlaying,
-                  std::array<Sint16, AUDIO_SAMPLE_COUNT> waveformDisplay,
+                  std::array<Sint16, WAVEFORM_SAMPLE_COUNT> waveformDisplay,
                   const bool hasUnsavedChanges, const CursorPos &cursorPosition,
                   orderIndexStorage &indexes,
                   const unsigned short currentPattern,
@@ -263,7 +263,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
     if (isAudioPlaying) {
       unsigned int lastY = 0;
       unsigned int lastX = 0;
-      for (size_t i = 0; i < AUDIO_SAMPLE_COUNT; i++) {
+      for (size_t i = 0; i < WAVEFORM_SAMPLE_COUNT; i++) {
         unsigned int y;
         {
           float point = static_cast<float>(
@@ -274,7 +274,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
               16;
         }
         unsigned int x = static_cast<unsigned int>(
-            static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_COUNT - 1) *
+            static_cast<float>(i) / static_cast<float>(WAVEFORM_SAMPLE_COUNT - 1) *
             static_cast<float>(windowWidth));
         line_drawLine(renderer, lastX, lastY, x, y,
                       {.r = 64, .g = 128, .b = 255, .a = 255});

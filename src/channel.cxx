@@ -25,6 +25,10 @@
 #include "order.hxx"
 #include "channel.hxx"
 
+namespace audio {
+    double audioChannelFrequency = 48000.0;
+}
+
 audioChannel::audioChannel(audioChannelType type): 
     noiseLFSR(1), 
     status({rowFeature::empty, 'A',
@@ -170,7 +174,7 @@ short audioChannel::gen() {
     Hz += effects.pitchOffset/512.0;
     if(Hz<=0) return 0; // DC or reverse; we don't want reverse!
     short final_volume = static_cast<short>(std::min(255.0,std::max(0.0,status.volume * (255.0 + effects.volumeOffset/2048.0) / 255.0))) * 128;
-    float change = 1.0/48000.0*Hz;
+    float change = 1.0/audio::audioChannelFrequency*Hz;
     if(channelType == audioChannelType::lfsr8) phase+=change;
     else if(channelType == audioChannelType::lfsr14) phase+=change;
     else phase=static_cast<float>(std::fmod(phase+change,1.0));

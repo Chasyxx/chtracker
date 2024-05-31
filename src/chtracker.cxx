@@ -103,6 +103,7 @@ bool /***************/ freeze = false;
 bool /***************/ isFrozen = true;
 unsigned short /*****/ tempo = 960;
 SDL_AudioDeviceID /**/ deviceID = 0;
+SDL_AudioSpec /******/ spec;
 bool /***************/ errorIsPresent = false;
 } // namespace audio
 
@@ -126,7 +127,8 @@ instrumentStorage instrumentSystem;
  *********/
 
 namespace gui {
-std::array<Sint16, AUDIO_SAMPLE_COUNT> waveformDisplay;
+std::array<Sint16, WAVEFORM_SAMPLE_COUNT> waveformDisplay;
+int /*************/ waveformIdx;
 CursorPos /*******/ cursorPosition;
 GlobalMenus /*****/ currentMenu = GlobalMenus::main_menu;
 unsigned short /**/ patternMenuOrderIndex = 0;
@@ -720,11 +722,13 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
 
     if (!audio::freeze && audio::isPlaying && orders.tableCount() > 0) {
       if (!timerSystem.hasTimer("row"))
-        timerSystem.addTimer("row", 48000 * 60 / audio::tempo);
+        timerSystem.addTimer("row", audio::spec.freq * 60 / audio::tempo);
       if (!timerSystem.hasTimer("effect"))
-        timerSystem.addTimer("effect", 375 * 960 / audio::tempo);
+        timerSystem.addTimer("effect",
+                             audio::spec.freq / 128 * 960 / audio::tempo);
       if (!timerSystem.hasTimer("arpeggio"))
-        timerSystem.addTimer("arpeggio", 1500 * 960 / audio::tempo);
+        timerSystem.addTimer("arpeggio",
+                             audio::spec.freq / 32 * 960 / audio::tempo);
 
       for (unsigned int audioIdx = 0;
            audioIdx < static_cast<unsigned int>(samples); audioIdx++) {
@@ -739,7 +743,8 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
                                instrumentSystem.at(instrumentIdx)->gen()) /
                                4));
         }
-        data[audioIdx] = gui::waveformDisplay.at(audioIdx) = sample;
+        data[audioIdx] = gui::waveformDisplay.at(gui::waveformIdx++) = sample;
+        if(gui::waveformIdx >= WAVEFORM_SAMPLE_COUNT) gui::waveformIdx = 0;
         audioTickTimers();
         audio::time++;
       }
@@ -763,6 +768,8 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
       }
       for (int i = 0; i < samples; i++) {
         data[i] /= 2;
+      }
+      for (int i = 0; i < WAVEFORM_SAMPLE_COUNT; i++) {
         gui::waveformDisplay.at(i) = 0;
       }
     }
@@ -806,17 +813,26 @@ void init() {
   fileMenu_directoryPath = "/";
 #endif
   SDL_AudioSpec preferred;
-  SDL_AudioSpec obatined;
 
   preferred.freq = 48000;
   preferred.format = AUDIO_S16;
   preferred.channels = 1;
   preferred.samples = AUDIO_SAMPLE_COUNT;
   preferred.callback = audioCallback;
-  audio::deviceID = SDL_OpenAudioDevice(NULL, 0, &preferred, &obatined, 0);
+  audio::deviceID = SDL_OpenAudioDevice(NULL, 0, &preferred, &audio::spec,
+                                        SDL_AUDIO_ALLOW_SAMPLES_CHANGE |
+                                            SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
   if (audio::deviceID == 0) {
     cmd::log::critical("Couldn't open audio: {}", SDL_GetError());
     quit(1);
+  }
+  if (audio::spec.samples != preferred.samples)
+    cmd::log::notice("Wanted {} sample frames and got {}",
+                     AUDIO_SAMPLE_COUNT, audio::spec.samples);
+  if (audio::spec.freq != preferred.freq) {
+    cmd::log::notice("Wanted {}Hz and got {}Hz, informing audio system",
+                     preferred.freq, audio::spec.freq);
+    audio::audioChannelFrequency = audio::spec.freq;
   }
   indexes.addRow();
   SDL_PauseAudioDevice(audio::deviceID, 0);
