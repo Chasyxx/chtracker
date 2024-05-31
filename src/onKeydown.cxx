@@ -762,11 +762,13 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
   }
   }
   /**************************************
-   * Windows file menu drice navigation *
+   * Windows file menu drive navigation *
    **************************************/
 #ifdef _WIN32
   if(currentMenu == GlobalMenus::file_menu && code >= 'a' && code <= 'q') {
-    fileMenuPath = {static_cast<char>(static_cast<char>(code)-'a'+'A'), ':', '\\', 0};
+    std::string path = "C:\\";
+    path.at(0) = static_cast<char>(static_cast<char>(code) - 'a' + 'A');
+    fileMenuPath = path;
   }
 #endif
   return;
