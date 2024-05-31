@@ -958,7 +958,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     fontTileCountW);
       text_drawText(renderer, "ESC to go to parent dir.", 2, 0, 96,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, fileMenuDirectory.string().c_str(), 2, 0, 112, // Converting to string and then char* to get around typing issues on Windows
+      text_drawText(renderer, fileMenuDirectory.string().c_str(), 2, 0, 128, // Converting to string and then char* to get around typing issues on Windows
                     visual_whiteText, 0, INT_MAX);
       unsigned short y = 144;
       int i = 0;
