@@ -274,7 +274,8 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
               16;
         }
         unsigned int x = static_cast<unsigned int>(
-            static_cast<float>(i) / static_cast<float>(WAVEFORM_SAMPLE_COUNT - 1) *
+            static_cast<float>(i) /
+            static_cast<float>(WAVEFORM_SAMPLE_COUNT - 1) *
             static_cast<float>(windowWidth));
         line_drawLine(renderer, lastX, lastY, x, y,
                       {.r = 64, .g = 128, .b = 255, .a = 255});
@@ -940,7 +941,16 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                       fontTileCountW);
       }
       barrier(renderer, 32, windowWidth);
-      text_drawText(renderer, "S to save a file", 2, 0, 48, visual_whiteText, 0,
+      text_drawText(renderer, "S to save a file\n"
+      "Return to load a file\n"
+      "R to render\n"
+      "ESC to go to parent directory\n"
+#ifdef _WIN32
+      "A-Q to navigate to respective drive",
+#else
+,
+#endif
+      2, 0, 48, visual_whiteText, 0,
                     fontTileCountW);
       text_drawText(renderer, "Return to load a file", 2, 0, 64,
                     visual_whiteText, 0, fontTileCountW);
@@ -948,12 +958,9 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
                     fontTileCountW);
       text_drawText(renderer, "ESC to go to parent dir.", 2, 0, 96,
                     visual_whiteText, 0, fontTileCountW);
-      text_drawText(
-          renderer,
-          const_cast<char *>(
-              (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
-          2, 0, 112, visual_whiteText, 0, INT_MAX);
-      unsigned short y = 128;
+      text_drawText(renderer, fileMenuDirectory.c_str(), 2, 0, 112,
+                    visual_whiteText, 0, INT_MAX);
+      unsigned short y = 144;
       int i = 0;
       int initialEntry = std::max(0, static_cast<int>(cursorPosition.y) -
                                          static_cast<int>(fontTileCountH / 2));
@@ -1002,8 +1009,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
               (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
           2, 160, 16, visual_whiteText, 0, fontTileCountW - 10);
       if (cursorPosition.subMenu == 1)
-        text_drawText(renderer, "That file exists, are you sure?", 2, 0,
-                      windowHeight - 16, visual_redText, 0, fontTileCountW);
+        text_drawText(renderer,
+                      "That file exists, are you sure?\n"
+                      "Enter - Yes, Escape - No.",
+                      2, 0, windowHeight - 32, visual_redText, 0,
+                      fontTileCountW);
       text_drawText(renderer, "Type a filename:", 2, 0, 128, visual_whiteText,
                     0, fontTileCountW - 10);
       text_drawText(renderer, saveFileName.c_str(), 2, 0, 144, visual_whiteText,
@@ -1024,8 +1034,11 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
               (fileMenuDirectory.string() + PATH_SEPERATOR_S).c_str()),
           2, 16 * 13, 16, visual_whiteText, 0, fontTileCountW - 13);
       if (cursorPosition.subMenu == 1)
-        text_drawText(renderer, "That file exists, are you sure?", 2, 0,
-                      windowHeight - 32, visual_redText, 0, fontTileCountW);
+        text_drawText(renderer,
+                      "That file exists, are you sure?\n"
+                      "Enter - Yes, Escape - No.",
+                      2, 0, windowHeight - 32, visual_redText, 0,
+                      fontTileCountW);
       text_drawText(renderer, "Program may not respond during render", 2, 0,
                     windowHeight - 16, visual_yellowText, 0, fontTileCountW);
       text_drawText(renderer, "Type a filename:", 2, 0, 128, visual_whiteText,

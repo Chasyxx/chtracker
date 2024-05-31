@@ -121,6 +121,12 @@ here, in order of how you would maybe
 use them:
 
 F7 - File menu:
+    You might be able to use Ctrl-O,
+    Ctrl-S, and Ctrl-R (rendering) 
+    instead to open your system's file
+    picker instead. (It'll open this
+    menu if it can't.)
+
     If you want to continue work from
     another time, or save work for
     another time, you go here. It
