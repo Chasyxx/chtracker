@@ -18,9 +18,9 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#include "log.hxx"
 #include <mutex>
 #include <vector>
+#include "log.hxx"
 
 namespace cmd {
 namespace log {

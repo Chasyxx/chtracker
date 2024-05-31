@@ -20,8 +20,8 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#ifndef LIBRARY_ORDER
-#define LIBRARY_ORDER
+#ifndef _CHTRACKER_ORDER_HXX
+#define _CHTRACKER_ORDER_HXX
 #include <vector>
 
 enum class effectTypes {

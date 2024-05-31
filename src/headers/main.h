@@ -20,8 +20,8 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#ifndef CHTRACKER_MAIN_H
-#define CHTRACKER_MAIN_H
+#ifndef _CHTRACKER_MAIN_H
+#define _CHTRACKER_MAIN_H
 
 /*************************************
 *                                    *

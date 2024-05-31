@@ -3,7 +3,7 @@
 
   This file is part of chTRACKER at path ./src/headers/log.hxx
   This is a header file; For the non-header file see path
-  ./src/log/log.c
+  ./src/log.cxx
 
   chTRACKER is free software: you can redistribute it and/or modify it under
   the terms of the GNU General Public License as published by the Free Software
@@ -20,8 +20,8 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#ifndef LIBRARY_LOG
-#define LIBRARY_LOG
+#ifndef _CHTRACKER_LOG_HXX
+#define _CHTRACKER_LOG_HXX
 
 #include <fmt/core.h>
 #include <iostream>

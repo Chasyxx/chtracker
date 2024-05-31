@@ -19,6 +19,8 @@
 
   Chase Taylor @ creset200@gmail.com
 */
+#ifndef _CHTRACKER_TIMER_HXX
+#define _CHTRACKER_TIMER_HXX
 
 #include <string>
 #include <vector>
@@ -47,3 +49,5 @@ class timerHandler {
     bool hasTimer(std::string name);
     void removeTimer(std::string name);
 };
+
+#endif

@@ -20,8 +20,8 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#ifndef LIBRARY_CHANNEL
-#define LIBRARY_CHANNEL
+#ifndef _CHTRACKER_CHANNEL_HXX
+#define _CHTRACKER_CHANNEL_HXX
 
 #include "order.hxx"
 #include <vector>

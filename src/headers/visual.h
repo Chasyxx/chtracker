@@ -22,8 +22,8 @@
   Chase Taylor @ creset200@gmail.com
 */
 
-#ifndef LIBRARY_VISUAL
-#define LIBRARY_VISUAL
+#ifndef _VISUALO_VISUAL_H
+#define _VISUALO_VISUAL_H
 
 #ifdef __cplusplus
 // Make sure this works in C++
