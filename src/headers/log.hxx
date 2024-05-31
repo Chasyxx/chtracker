@@ -25,7 +25,6 @@
 
 #include <fmt/core.h>
 #include <iostream>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -58,11 +57,9 @@ namespace log {
  */
 extern int level;
 extern std::vector<struct log> logs;
-extern std::mutex logLock;
 template <typename... Args>
 void log(int severity, std::string &format, Args &&...args) {
   std::string msg = fmt::format(format, std::forward<Args>(args)...);
-  std::lock_guard<std::mutex> lock(logLock);
   if (level <= severity) {
     logs.push_back(
         {.msg = msg, .severity = static_cast<char>(severity), .printed = true});

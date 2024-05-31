@@ -681,12 +681,12 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
         outputRow->note = inputRow->note;
         outputRow->octave = inputRow->octave;
         outputRow->volume = inputRow->volume;
-        for (int i = 0;
-              i < 4 && static_cast<size_t>(i) < inputRow->effects.size() &&
-              static_cast<size_t>(i) < outputRow->effects.size();
-              i++) {
-          outputRow->effects.at(i).type = inputRow->effects.at(i).type;
-          outputRow->effects.at(i).effect = inputRow->effects.at(i).effect;
+        for (int j = 0;
+              j < 4 && static_cast<size_t>(j) < inputRow->effects.size() &&
+              static_cast<size_t>(j) < outputRow->effects.size();
+              j++) {
+          outputRow->effects.at(j).type = inputRow->effects.at(j).type;
+          outputRow->effects.at(j).effect = inputRow->effects.at(j).effect;
         }
       }
       cursorPosition.selection.x = 0;
