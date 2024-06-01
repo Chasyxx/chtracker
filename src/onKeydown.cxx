@@ -31,26 +31,31 @@
 #include "order.hxx"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
-#include <stdexcept>
+#include <SDL2/SDL_scancode.h>
 #include <filesystem>
 #include <stdexcept>
 #include <string>
 
-/*************************************
-*                                    *
-*            MACRO SECTION           *
-*   All #define DIRECTIVES GO HERE   *
-*                                    *
-*************************************/
+#ifdef _WIN32
+#include <commdlg.h>
+#include <windows.h>
+#endif
 
- // none
+/*************************************
+ *                                    *
+ *            MACRO SECTION           *
+ *   All #define DIRECTIVES GO HERE   *
+ *                                    *
+ *************************************/
+
+// none
 
 /****************************
-*                           *
-*     FUNCTIONS SECTION     *
-*   ALL FUNCTIONS GO HERE   *
-*                           *
-****************************/
+ *                           *
+ *     FUNCTIONS SECTION     *
+ *   ALL FUNCTIONS GO HERE   *
+ *                           *
+ ****************************/
 
 void onOpenMenu(CursorPos &p) {
   p = {.x = 0, .y = 0, .subMenu = 0, .selection = {.x = 0, .y = 0}};
@@ -64,12 +69,13 @@ int renderTo(std::filesystem::path);
 
 void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
                   CursorPos &cursorPosition, std::string &saveMenuFilename,
-                  std::string &renderMenuFilename, std::filesystem::path &fileMenuPath,
-                  char *&fileMenuError, bool &hasUnsavedChanges,
-                  const unsigned int limitX, const unsigned int limitY,
-                  bool &freezeAudio, bool &audioIsFrozen,
-                  unsigned short &currentlyViewedOrder, char &viewMode,
-                  bool &playAudio, instrumentStorage &instrumentSystem,
+                  std::string &renderMenuFilename,
+                  std::filesystem::path &fileMenuPath, char *&fileMenuError,
+                  bool &hasUnsavedChanges, const unsigned int limitX,
+                  const unsigned int limitY, bool &freezeAudio,
+                  bool &audioIsFrozen, unsigned short &currentlyViewedOrder,
+                  char &viewMode, bool &playAudio,
+                  instrumentStorage &instrumentSystem,
                   orderIndexStorage &indexes, orderStorage &orders,
                   const unsigned short audio_pattern,
                   unsigned short &patternLength, const Uint8 *currentKeyStates,
@@ -77,10 +83,10 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
   SDL_Keysym ks = event->key.keysym;
   SDL_Keycode code = ks.sym;
   /********************************
-  *                               *
-  *     Filename editor binds     *
-  *                               *
-  ********************************/
+   *                               *
+   *     Filename editor binds     *
+   *                               *
+   ********************************/
   if (currentMenu == GlobalMenus::save_file_menu ||
       currentMenu == GlobalMenus::render_menu) {
     if (code == SDLK_ESCAPE) {
@@ -136,68 +142,69 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     return;
   }
   /***************************
-  *                          *
-  *     Debug menu binds     *
-  *                          *
-  ***************************/
-  if(currentMenu == GlobalMenus::debug_menu) {
-    switch(code) {
-      case 'o': {
-        throw std::out_of_range("Requested in debug menu");
-        break;
-      }
-      case 'l': {
-        throw std::logic_error("Requested in debug menu");
-        break;
-      }
-      case 'r': {
-        throw std::runtime_error("Requested in debug menu");
-        break;
-      }
-      case 'n': {
-        cmd::log::notice("Debug menu notice log");
-        break;
-      }
-      case 'w': {
-        cmd::log::warning("Debug menu warning log");
-        break;
-      }
-      case 'e': {
-        cmd::log::error("Debug menu error log");
-        break;
-      }
-      case 'c': {
-        cmd::log::critical("Debug menu critical log");
-        break;
-      }
-      case 'f': {
-        debugMenuUsage = true;
-        freezeAudio = !freezeAudio;
-        break;
-      }
-      case 'd': {
-        debugMenuUsage = true;
-        orders.removeTable(orders.tableCount()-1);
-        break;
-      }
-      case 'i': {
-        debugMenuUsage = true;
-        indexes.removeInst(indexes.instCount(0)-1);
-        break;
-      }
-      case 's': {
-        debugMenuUsage = true;
-        instrumentSystem.remove_inst(instrumentSystem.inst_count()-1);
-        break;
-      }
-      default:break;
+   *                          *
+   *     Debug menu binds     *
+   *                          *
+   ***************************/
+  if (currentMenu == GlobalMenus::debug_menu) {
+    switch (code) {
+    case 'o': {
+      throw std::out_of_range("Requested in debug menu");
+      break;
+    }
+    case 'l': {
+      throw std::logic_error("Requested in debug menu");
+      break;
+    }
+    case 'r': {
+      throw std::runtime_error("Requested in debug menu");
+      break;
+    }
+    case 'n': {
+      cmd::log::notice("Debug menu notice log");
+      break;
+    }
+    case 'w': {
+      cmd::log::warning("Debug menu warning log");
+      break;
+    }
+    case 'e': {
+      cmd::log::error("Debug menu error log");
+      break;
+    }
+    case 'c': {
+      cmd::log::critical("Debug menu critical log");
+      break;
+    }
+    case 'f': {
+      debugMenuUsage = true;
+      freezeAudio = !freezeAudio;
+      break;
+    }
+    case 'd': {
+      debugMenuUsage = true;
+      orders.removeTable(orders.tableCount() - 1);
+      break;
+    }
+    case 'i': {
+      debugMenuUsage = true;
+      indexes.removeInst(indexes.instCount(0) - 1);
+      break;
+    }
+    case 's': {
+      debugMenuUsage = true;
+      instrumentSystem.remove_inst(instrumentSystem.inst_count() - 1);
+      break;
+    }
+    default:
+      break;
     }
   }
   /*****************************
-  *                            *
-  *     Title screen binds     *
-  *                            *
-  *****************************/
+   *                            *
+   *     Title screen binds     *
+   *                            *
+   *****************************/
   if (currentMenu == GlobalMenus::main_menu) {
     switch (code) {
     case SDLK_ESCAPE: {
@@ -212,10 +219,10 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     return;
   }
   /***********************
-  *                      *
-  *     Global binds     *
-  *                      *
-  ***********************/
+   *                      *
+   *     Global binds     *
+   *                      *
+   ***********************/
   switch (code) {
   case SDLK_ESCAPE: {
     if (currentMenu == GlobalMenus::file_menu) {
@@ -270,7 +277,8 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     break;
   }
   case SDLK_F12: {
-    if(currentKeyStates[SDL_SCANCODE_F11] && currentKeyStates[SDL_SCANCODE_F10]) {
+    if (currentKeyStates[SDL_SCANCODE_F11] &&
+        currentKeyStates[SDL_SCANCODE_F10]) {
       currentMenu = GlobalMenus::debug_menu;
       onOpenMenu(cursorPosition);
     }
@@ -307,13 +315,14 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
             std::filesystem::is_directory(fileMenuPath)) {
           // Iterate through each file in the directory
           for (const auto &entry :
-                std::filesystem::directory_iterator(fileMenuPath)) {
+               std::filesystem::directory_iterator(fileMenuPath)) {
             if (entry.path().filename().string()[0] == '.')
               continue;
             if (i++ == static_cast<int>(cursorPosition.y)) {
               found = true;
               if (entry.is_directory()) {
-                std::filesystem::path newPath = fileMenuPath / entry.path().filename();
+                std::filesystem::path newPath =
+                    fileMenuPath / entry.path().filename();
                 if (std::filesystem::exists(fileMenuPath)) {
                   fileMenuPath = newPath;
                 }
@@ -364,11 +373,103 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     break;
   }
   }
-  /*****************************
-  *                            *
-  *     Pattern menu binds     *
-  *                            *
-  *****************************/
+  /*************************************************
+   *                                               *
+   *     CTRL-O, CTRL-S, and CTRL-R on Windows     *
+   *                                               *
+   *************************************************/
+  // TODO: Someone help me figure out how to do this on Linux.
+  // I can't use GTK because i already use SDL with it's own main loop.
+#ifdef _WIN32
+  if ((currentKeyStates[SDL_SCANCODE_LCTRL] ||
+       currentKeyStates[SDL_SCANCODE_RCTRL])) {
+    if (code == 's') {
+      OPENFILENAME ofn;
+      char szFile[260] = {0};
+
+      ZeroMemory(&ofn, sizeof(ofn));
+      ofn.lStructSize = sizeof(ofn);
+      ofn.hwndOwner = nullptr;
+      ofn.lpstrFile = szFile;
+      ofn.nMaxFile = sizeof(szFile);
+      ofn.lpstrFilter = "chTRACKER modules\0*.CHT\0All files\0*.*\0";
+      ofn.nFilterIndex = 1;
+      ofn.lpstrFileTitle = nullptr;
+      ofn.nMaxFileTitle = 0;
+      ofn.lpstrInitialDir = nullptr;
+      ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+      if (GetSaveFileName(&ofn) == TRUE) {
+        if(saveFile(ofn.lpstrFile) == 0) {
+          currentMenu = GlobalMenus::pattern_menu;
+          onOpenMenu(cursorPosition);
+        } else if (fileMenu_errorText[0] == 0) {
+          fileMenu_errorText = const_cast<char*>("Couldn't save file");
+          currentMenu = GlobalMenus::file_menu;
+          onOpenMenu(cursorPosition);
+        };
+      }
+    } else if (code == 'o') {
+      OPENFILENAME ofn;
+      char szFile[260] = { 0 };
+
+      ZeroMemory(&ofn, sizeof(ofn));
+      ofn.lStructSize = sizeof(ofn);
+      ofn.hwndOwner = nullptr;
+      ofn.lpstrFile = szFile;
+      ofn.nMaxFile = sizeof(szFile);
+      ofn.lpstrFilter = "chTRACKER modules\0*.CHT\0All files\0*.*\0";
+      ofn.nFilterIndex = 1;
+      ofn.lpstrFileTitle = nullptr;
+      ofn.nMaxFileTitle = 0;
+      ofn.lpstrInitialDir = nullptr;
+      ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+      if (GetOpenFileName(&ofn) == TRUE) {
+        if(loadFile(ofn.lpstrFile) == 0) {
+          currentMenu = GlobalMenus::pattern_menu;
+          onOpenMenu(cursorPosition);
+        } else if (fileMenu_errorText[0] == 0) {
+          fileMenu_errorText = const_cast<char*>("Couldn't open file");
+          currentMenu = GlobalMenus::file_menu;
+          onOpenMenu(cursorPosition);
+        };
+      }
+    } else if (code == 'r') {
+      OPENFILENAME ofn;
+      char szFile[260] = {0};
+
+      ZeroMemory(&ofn, sizeof(ofn));
+      ofn.lStructSize = sizeof(ofn);
+      ofn.hwndOwner = nullptr;
+      ofn.lpstrFile = szFile;
+      ofn.nMaxFile = sizeof(szFile);
+      ofn.lpstrFilter = "WAV files\0*.WAV\0All files\0*.*\0";
+      ofn.nFilterIndex = 1;
+      ofn.lpstrFileTitle = nullptr;
+      ofn.nMaxFileTitle = 0;
+      ofn.lpstrInitialDir = nullptr;
+      ofn.lpstrTitle = "Render to";
+      ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+      if (GetSaveFileName(&ofn) == TRUE) {
+        if(renderTo(ofn.lpstrFile) == 0) {
+          currentMenu = GlobalMenus::pattern_menu;
+          onOpenMenu(cursorPosition);
+        } else if (fileMenu_errorText[0] == 0) {
+          fileMenu_errorText = const_cast<char*>("Couldn't render to the file");
+          currentMenu = GlobalMenus::file_menu;
+          onOpenMenu(cursorPosition);
+        };
+      }
+    }
+  }
+#endif
+  /******************************
+   *                            *
+   *     Pattern menu binds     *
+   *                            *
+   *****************************/
   if (currentMenu == GlobalMenus::pattern_menu) {
     switch (code) {
     case 'p': {
@@ -408,10 +509,9 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     unsigned char selectedVariable =
         cursorPosition.x %
         patternMenu_instrumentVariableCount[static_cast<size_t>(viewMode)];
-    row *r =
-        orders.at(selectedInstrument)
-            ->at(indexes.at(currentlyViewedOrder)->at(selectedInstrument))
-            ->at(cursorPosition.y);
+    row *r = orders.at(selectedInstrument)
+                 ->at(indexes.at(currentlyViewedOrder)->at(selectedInstrument))
+                 ->at(cursorPosition.y);
     if (selectedVariable == 0) {
       bool moveDown = true;
       switch (code) {
@@ -583,8 +683,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
           cursorPosition.y++;
           hasUnsavedChanges = true;
         }
-      } else if ((code >= '0' && code <= '9') ||
-                  (code >= 'a' && code <= 'f')) {
+      } else if ((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')) {
         unsigned char value;
         if (code >= 'a') {
           value = code - 'a' + 10;
@@ -592,7 +691,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
           value = code - '0';
         unsigned char shift = (4 - idx) << 2;
         e.effect = (e.effect & ~(static_cast<unsigned short>(0xF) << shift)) |
-                    value << shift;
+                   value << shift;
         if (idx == 4) {
           cursorPosition.y++;
           cursorPosition.x -= 3;
@@ -604,10 +703,10 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
     return;
   }
   /***************************************
-  *                                      *
-  *     Individual non-pattern binds     *
-  *                                      *
-  ***************************************/
+   *                                      *
+   *     Individual non-pattern binds     *
+   *                                      *
+   ***************************************/
   switch (code) {
   case 'z': {
     if (currentMenu == GlobalMenus::instrument_menu &&
@@ -632,11 +731,11 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
         currentlyViewedOrder = 0;
       hasUnsavedChanges = true;
     } else if (currentMenu == GlobalMenus::order_menu &&
-                indexes.rowCount() > 1) {
+               indexes.rowCount() > 1) {
       indexes.removeRow(cursorPosition.y);
       hasUnsavedChanges = true;
     } else if (currentMenu == GlobalMenus::order_management_menu &&
-                cursorPosition.subMenu == 0 && orders.tableCount() > 0) {
+               cursorPosition.subMenu == 0 && orders.tableCount() > 0) {
       if (cursorPosition.x == 0)
         break;
       if (orders.at(cursorPosition.y)->order_count() < 2)
@@ -661,7 +760,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
       instrumentSystem.at(cursorPosition.y)->cycle_type();
       hasUnsavedChanges = true;
     } else if (currentMenu == GlobalMenus::order_management_menu &&
-                orders.tableCount() > 0) {
+               orders.tableCount() > 0) {
       if (cursorPosition.subMenu == 0) {
         cursorPosition.selection.x = cursorPosition.x;
         cursorPosition.selection.y = cursorPosition.y;
@@ -672,8 +771,8 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
       }
       order *output = orders.at(cursorPosition.x)
                           ->at(orders.at(cursorPosition.x)->add_order());
-      order *input = orders.at(cursorPosition.selection.y)
-                          ->at(cursorPosition.selection.x);
+      order *input =
+          orders.at(cursorPosition.selection.y)->at(cursorPosition.selection.x);
       for (int i = 0; i < patternLength; i++) {
         row *inputRow = input->at(i);
         row *outputRow = output->at(i);
@@ -682,9 +781,9 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
         outputRow->octave = inputRow->octave;
         outputRow->volume = inputRow->volume;
         for (int j = 0;
-              j < 4 && static_cast<size_t>(j) < inputRow->effects.size() &&
-              static_cast<size_t>(j) < outputRow->effects.size();
-              j++) {
+             j < 4 && static_cast<size_t>(j) < inputRow->effects.size() &&
+             static_cast<size_t>(j) < outputRow->effects.size();
+             j++) {
           outputRow->effects.at(j).type = inputRow->effects.at(j).type;
           outputRow->effects.at(j).effect = inputRow->effects.at(j).effect;
         }
@@ -707,13 +806,13 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
       }
 
       while (indexes.at(cursorPosition.y)->at(cursorPosition.x) >=
-              orders.at(cursorPosition.x)->order_count())
+             orders.at(cursorPosition.x)->order_count())
         orders.at(cursorPosition.x)->add_order();
     } else if (currentMenu == GlobalMenus::options_menu) {
       if (cursorPosition.y == 0) {
         // RPM
         if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
-              currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
+             currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
             audio_tempo < 65525) {
           audio_tempo += 10;
           hasUnsavedChanges = true;
@@ -742,7 +841,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
       if (cursorPosition.y == 0) {
         // RPM
         if ((currentKeyStates[SDL_SCANCODE_LSHIFT] ||
-              currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
+             currentKeyStates[SDL_SCANCODE_RSHIFT]) &&
             audio_tempo > 40) {
           audio_tempo -= 10;
           hasUnsavedChanges = true;
@@ -765,7 +864,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
    * Windows file menu drive navigation *
    **************************************/
 #ifdef _WIN32
-  if(currentMenu == GlobalMenus::file_menu && code >= 'a' && code <= 'q') {
+  if (currentMenu == GlobalMenus::file_menu && code >= 'a' && code <= 'q') {
     std::string path = "C:\\";
     path.at(0) = static_cast<char>(static_cast<char>(code) - 'a' + 'A');
     fileMenuPath = path;
