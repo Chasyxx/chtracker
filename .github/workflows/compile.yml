@@ -18,7 +18,7 @@ jobs:
       run: sudo apt-get install libsdl2-dev libfmt-dev
 
     - name: configure for Linux compilation
-      run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0 -lfmt" ./configure.sh --disable-sdl
+      run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0 -lfmt" ./configure --disable-sdl
     - name: make a Linux executable
       run: make
     - name: Upload Linux executable
@@ -86,8 +86,8 @@ jobs:
           cd ../../chtracker
 
       - name: configure for Windows cross-compilation
-        run: CFLAGS="-O2 -I$PWD/../libsdl/include/ -I$PWD/../libfmt/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(../libsdl/bin/sdl2-config --libs) -L$PWD/../libfmt/lib -lfmt --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure.sh --disable-sdl --icon
-# CFLAGS="-O2 -I$HOME/.local/sdl2-mingw-w64/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$($HOME/.local/sdl2-mingw-w64/bin/sdl2-config --libs) --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure.sh --disable-sdl --icon
+        run: CFLAGS="-O2 -I$PWD/../libsdl/include/ -I$PWD/../libfmt/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(../libsdl/bin/sdl2-config --libs) -L$PWD/../libfmt/lib -lfmt --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure --disable-sdl --icon
+# CFLAGS="-O2 -I$HOME/.local/sdl2-mingw-w64/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$($HOME/.local/sdl2-mingw-w64/bin/sdl2-config --libs) --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure --disable-sdl --icon
       - name: make a Windows executable
         run: make
       - name: Upload Windows executable
