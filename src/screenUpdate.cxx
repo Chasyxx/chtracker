@@ -952,12 +952,6 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
 #endif
       2, 0, 48, visual_whiteText, 0,
                     fontTileCountW);
-      text_drawText(renderer, "Return to load a file", 2, 0, 64,
-                    visual_whiteText, 0, fontTileCountW);
-      text_drawText(renderer, "R to render", 2, 0, 80, visual_whiteText, 0,
-                    fontTileCountW);
-      text_drawText(renderer, "ESC to go to parent dir.", 2, 0, 96,
-                    visual_whiteText, 0, fontTileCountW);
       text_drawText(renderer, fileMenuDirectory.string().c_str(), 2, 0, 128, // Converting to string and then char* to get around typing issues on Windows
                     visual_whiteText, 0, INT_MAX);
       unsigned short y = 144;
@@ -1037,7 +1031,7 @@ void screenUpdate(SDL_Renderer *renderer, SDL_Window *window,
         text_drawText(renderer,
                       "That file exists, are you sure?\n"
                       "Enter - Yes, Escape - No.",
-                      2, 0, windowHeight - 32, visual_redText, 0,
+                      2, 0, windowHeight - 48, visual_redText, 0,
                       fontTileCountW);
       text_drawText(renderer, "Program may not respond during render", 2, 0,
                     windowHeight - 16, visual_yellowText, 0, fontTileCountW);
