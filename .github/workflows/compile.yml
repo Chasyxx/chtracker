@@ -24,7 +24,8 @@ jobs:
     - name: Upload Linux executable
       uses: actions/upload-artifact@v4
       with:
-        name: linux-executable
+        name: linux-elf
+        retention-days: 30
         path: ./chtracker
 
   windows:
@@ -90,8 +91,13 @@ jobs:
 # CFLAGS="-O2 -I$HOME/.local/sdl2-mingw-w64/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$($HOME/.local/sdl2-mingw-w64/bin/sdl2-config --libs) --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure --disable-sdl --icon
       - name: make a Windows executable
         run: make
+      - name: Prapare Windows EXE for uploading
+        run: cat doc/MINGW_RUNTIME_LICENSE.txt | sed -e "/\/\/\//d" > MINGW_RUNTIME_LICENSE.txt
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
-          name: windows-executable
-          path: ./chtracker.exe
+          name: windows-exe
+          retention-days: 30
+          path: |
+            ./chtracker.exe
+            ./MINGW_RUNTIME_LICENSE.txt
