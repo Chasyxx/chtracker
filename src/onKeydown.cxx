@@ -79,7 +79,7 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
                   orderIndexStorage &indexes, orderStorage &orders,
                   const unsigned short audio_pattern,
                   unsigned short &patternLength, const Uint8 *currentKeyStates,
-                  unsigned short &audio_tempo, bool &debugMenuUsage) {
+                  unsigned short &audio_tempo) {
   SDL_Keysym ks = event->key.keysym;
   SDL_Keycode code = ks.sym;
   /********************************
@@ -177,22 +177,22 @@ void onSDLKeyDown(const SDL_Event *event, int &quit, GlobalMenus &currentMenu,
       break;
     }
     case 'f': {
-      debugMenuUsage = true;
+      cmd::log::warning("Debug menu froze/unfroze audio");
       freezeAudio = !freezeAudio;
       break;
     }
     case 'd': {
-      debugMenuUsage = true;
+      cmd::log::warning("Debug menu dismantled an order table");
       orders.removeTable(orders.tableCount() - 1);
       break;
     }
     case 'i': {
-      debugMenuUsage = true;
+      cmd::log::warning("Debug menu dismantled an index row");
       indexes.removeInst(indexes.instCount(0) - 1);
       break;
     }
     case 's': {
-      debugMenuUsage = true;
+      cmd::log::warning("Debug menu dismantled an instrument");
       instrumentSystem.remove_inst(instrumentSystem.inst_count() - 1);
       break;
     }

@@ -925,7 +925,7 @@ void sdlEventHandler(SDL_Event *event, int &quit) {
                  audio::isFrozen, gui::patternMenuOrderIndex,
                  gui::patternMenuViewMode, audio::isPlaying, instrumentSystem,
                  indexes, orders, audio::pattern, patternLength,
-                 currentKeyStates, audio::tempo, gui::debugMenuUsage);
+                 currentKeyStates, audio::tempo);
     break;
   }
   case SDL_KEYUP: {
@@ -1034,10 +1034,7 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
       text_drawText(r, e.what(), 2, 16, 64, visual_redText, 0, 38);
       text_drawText(r,
                     //"----------==========[[[[[[[[[[]]]]]]]]]]123456"
-                    gui::debugMenuUsage
-                        ? "Debug menu used; do not report.\n\n"
-                          "Press a key up to 8 times to abort."
-                        : "Please create an issue at\n"
+                          "Please create an issue at\n"
                           "https://github.com/Chasyxx/chtracker\n"
                           "with details of the error and what you were\n"
                           "doing when the error occurred.\n\n"
