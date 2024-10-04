@@ -13,7 +13,7 @@
   A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License along with
-  chTRACKER. If not, see <https://www.gnu.org/licenses/>. 
+  chTRACKER. If not, see <https://www.gnu.org/licenses/>.
 
   Chase Taylor @ creset200@gmail.com
 */
@@ -48,7 +48,7 @@ void order::setRowCount(unsigned short size) {
     rows.resize(size);
 }
 
-unsigned short order::rowCount() {
+unsigned short order::rowCount() const {
     return rows.size();
 }
 
@@ -63,12 +63,12 @@ unsigned char instrumentOrderTable::add_order() {
     orders.push_back(order(rowCount));
     return orders.size()-1;
 }
-unsigned char instrumentOrderTable::order_count() {
+unsigned char instrumentOrderTable::order_count() const {
     return orders.size();
 }
 void instrumentOrderTable::remove_order(unsigned char idx) {
     if(idx>=order_count()) throw std::out_of_range("instrumentOrderTable::remove_order");
-    
+
     for(unsigned char i = order_count()-1; i>idx; i--) {
         order o = orders.back();
         orders.pop_back();
@@ -98,12 +98,12 @@ unsigned char orderStorage::addTable() {
     orderTables.push_back(instrumentOrderTable(row_count));
     return orderTables.size()-1;
 }
-unsigned char orderStorage::tableCount() {
+unsigned char orderStorage::tableCount() const {
     return orderTables.size();
 }
 void orderStorage::removeTable(unsigned char idx) {
     if(idx>=tableCount()) throw std::out_of_range("orderStorage::remove_table");
-    
+
     for(unsigned char i = tableCount()-1; i>idx; i--) {
         instrumentOrderTable table = orderTables.back();
         orderTables.pop_back();
@@ -122,7 +122,7 @@ void orderStorage::setRowCount(unsigned short size) {
         orderTables.at(i).set_row_count(size);
     }
 }
-unsigned short orderStorage::rowCount() {
+unsigned short orderStorage::rowCount() const {
     return row_count;
 }
 instrumentOrderTable* orderStorage::at(unsigned char idx) {
@@ -135,12 +135,12 @@ unsigned char orderIndexRow::addInst() {
     indexes.push_back(0);
     return indexes.size()-1;
 }
-unsigned char orderIndexRow::instCount() {
+unsigned char orderIndexRow::instCount() const {
     return indexes.size();
 }
 void orderIndexRow::removeInst(unsigned char idx) {
     if(idx>=instCount()) throw std::out_of_range("orderIndexRow::removeInst");
-    
+
     for(unsigned char i = instCount()-1; i>idx; i--) {
         unsigned char index = indexes.back();
         indexes.pop_back();
@@ -178,7 +178,7 @@ unsigned char orderIndexStorage::addInst() {
     return temp;
 }
 
-unsigned char orderIndexStorage::instCount(unsigned char fallback) {
+unsigned char orderIndexStorage::instCount(unsigned char fallback) const {
     if(rows.size()==0) return fallback;
     try {
         return rows.at(0).instCount();
@@ -200,13 +200,13 @@ unsigned short orderIndexStorage::addRow() {
     return rows.size()-1;
 }
 
-unsigned short orderIndexStorage::rowCount() {
+unsigned short orderIndexStorage::rowCount() const {
     return rows.size();
 }
 
 void orderIndexStorage::removeRow(unsigned short idx) {
     if(idx>=rowCount()) throw std::out_of_range("orderIndexStorage::removeRow");
-    
+
     for(unsigned char i = rowCount()-1; i>idx; i--) {
         orderIndexRow row = rows.back();
         rows.pop_back();

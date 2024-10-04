@@ -194,15 +194,11 @@ void write16LE(unsigned char *buffer, unsigned short a, size_t &bufferIdx) {
 void audioTickTimers() {
   timerSystem.tick();
   if (timerSystem.isComplete("row")) {
-    audio::row++;
-    if (audio::row >= orders.at(0)->at(0)->rowCount()) {
+    if (audio::row >= orders.at(0)->at(0)->rowCount() - 1) {
       audio::row = 0;
-      audio::pattern++;
-      if (audio::pattern >= indexes.rowCount()) {
-        cmd::log::debug("Reached end of song, looping!");
-        audio::pattern = 0;
-      }
-    }
+      if (audio::pattern >= indexes.rowCount() - 1) audio::pattern = 0;
+      else audio::pattern++;
+    } else audio::row++;
     timerSystem.resetTimer("row", 48000 * 60 / audio::tempo);
     for (unsigned char i = 0; i < instrumentSystem.inst_count(); i++) {
       unsigned char patternIndex = indexes.at(audio::pattern)->at(i);
@@ -713,8 +709,16 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
     if (gui::currentMenu == GlobalMenus::main_menu) {
       for (unsigned int i = 0; i < static_cast<unsigned int>(samples); i++) {
         unsigned long t = audio::time + i;
-        data[i] = (-(3 * t >> 5 & t >> 14 & t >> 6) * t << 1) |
-                  (t * 5 * 128 & t << 1);
+        data[i] = ((((37649&1<<(t>>13&15)?
+            (int)((
+                (t+314)*128/((t>>8&31)+1)&255
+            )/85)*85
+            :0)
+            |
+            ((t*(t>>18&1?t>>17&1?36:38:t>>17&1?32:27)/
+                ((2-(2523490710>>(t>>13&31)&1))
+                    *(t>>20&1?24:36)
+                )&192)))&255)-127)*64;
       }
       audio::time += samples;
       return;
@@ -783,9 +787,11 @@ void whoops(void *userdata, Uint8 *stream, int len) {
   (void)userdata;
   for (int i = 0; i < len; i++) {
     unsigned long t = audio::time + i;
-    stream[i] = ((127 & t * (7 & t >> 11)) < (245 & t * (8 - (5 & t >> 13)))) *
-                    (128 - (t >> 5 & 127)) +
-                64 + (t >> 6 & 63);
+    stream[i] =
+        37649 & 1 << (t >> 10 & 15)
+            ? (int)(((t + 314) * 128 / ((t >> 5 & 31) + 1) & 255) / 85) * 127
+            : (t * (t >> 17 & 1 ? 12 : 16) / (4 + (t >> 15 & 3)) *
+               (1 + (t >> 13 & 3)));
   }
   audio::time += len;
 }
@@ -961,7 +967,7 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
   int quit = 0;
   while (true) {
     if (audio::errorIsPresent)
-      throw std::logic_error("Audio error; check the console for details.");
+      throw std::runtime_error("Audio error; check the log (shown below) for details.");
     while (SDL_PollEvent(&event)) {
       sdlEventHandler(&event, quit);
     }
@@ -986,13 +992,11 @@ void sdlLoop(SDL_Renderer *renderer, SDL_Window *window) {
 }
 
 void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
-  cmd::log::critical("{} {}", typeid(e).name(), e.what());
-  cmd::log::critical(gui::debugMenuUsage
-                         ? "Debug menu used; do not report."
-                         : "Please create an issue at "
-                           "https://github.com/Chasyxx/chtracker with "
-                           "details of the error and what you were doing when "
-                           "the error occurred.");
+  cmd::log::critical("{} {} Starting the error screen NOW!", typeid(e).name(), e.what());
+  cmd::log::critical("Please create an issue at "
+                     "https://github.com/Chasyxx/chtracker with "
+                     "details of the error and what you were doing when "
+                     "the error occurred.");
   try {
     SDL_SetWindowSize(w, 768, 512);
     SDL_PauseAudioDevice(audio::deviceID, 1);
@@ -1024,7 +1028,7 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
         break;
       SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
       SDL_RenderClear(r);
-      text_drawText(r, "Uh-oh! chTRACKER has encountered an error!", 2, 16, 16,
+      text_drawText(r, "Whoops: chTRACKER has crashed!", 2, 16, 16,
                     visual_redText, 1, 46);
       text_drawText(r, typeid(e).name(), 2, 16, 32, visual_redText, 0, 38);
       text_drawText(r, e.what(), 2, 16, 64, visual_redText, 0, 38);
@@ -1064,13 +1068,13 @@ void errorScreen(SDL_Renderer *r, SDL_Window *w, const std::exception &e) {
 
 void printHelp() {
 #define pH(x) std::cout << x
-  pH("Usage: " << executableAbsolutePath << " [-l 0-4] [-v] [PATH]"
+  pH("Usage: " << executableAbsolutePath << " [-l 0-4] [-v] [FILE]"
                << "\n\n");
   pH("-l --loglevel: Change loglevel. Lower is more verbose"
      << "\n");
   pH("-v --verbose : increase verbosity"
      << "\n\n");
-  pH("if PATH is included, load it automatically." << std::endl);
+  pH("if FILE is included, load it automatically." << std::endl);
 #undef pH
 }
 

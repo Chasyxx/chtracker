@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2024 Chase Taylor
-  
+
   This file is part of chTRACKER at path ./src/headers/order.hxx
   This is a declaration file; For implementation see path
   ./src/order/order.cxx
@@ -15,7 +15,7 @@
   A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License along with
-  chTRACKER. If not, see <https://www.gnu.org/licenses/>. 
+  chTRACKER. If not, see <https://www.gnu.org/licenses/>.
 
   Chase Taylor @ creset200@gmail.com
 */
@@ -70,7 +70,7 @@ class order {
     order(unsigned short size);
 
     void setRowCount(unsigned short size);
-    unsigned short rowCount();
+    unsigned short rowCount() const;
     row* at(unsigned short idx);
 };
 
@@ -82,7 +82,7 @@ class instrumentOrderTable {
     public:
     instrumentOrderTable(unsigned short size);
     unsigned char add_order();
-    unsigned char order_count();
+    unsigned char order_count() const;
     void remove_order(unsigned char idx);
     void set_row_count(unsigned short size);
     order* at(unsigned char idx);
@@ -96,10 +96,10 @@ class orderStorage {
     public:
     orderStorage(unsigned short size);
     unsigned char addTable();
-    unsigned char tableCount();
+    unsigned char tableCount() const;
     void removeTable(unsigned char idx);
     void setRowCount(unsigned short size);
-    unsigned short rowCount();
+    unsigned short rowCount() const;
     instrumentOrderTable* at(unsigned char idx);
 };
 
@@ -109,13 +109,13 @@ class orderIndexRow {
         std::vector<unsigned char> erase_indexes;
     public:
         unsigned char addInst();
-        unsigned char instCount();
+        unsigned char instCount() const;
         void removeInst(unsigned char idx);
         unsigned char at(unsigned char idx);
         void set(unsigned char idx, unsigned char value);
         void increment(unsigned char idx);
         void decrement(unsigned char idx);
-        unsigned char size();
+        unsigned char size() const;
 };
 
 class orderIndexStorage {
@@ -124,10 +124,10 @@ class orderIndexStorage {
     std::vector<orderIndexRow> erase_rows;
     public:
     unsigned char addInst();
-    unsigned char instCount(unsigned char fallback);
+    unsigned char instCount(unsigned char fallback) const;
     void removeInst(unsigned char idx);
     unsigned short addRow();
-    unsigned short rowCount();
+    unsigned short rowCount() const;
     void removeRow(unsigned short idx);
     orderIndexRow* at(unsigned short idx);
 };
