@@ -787,11 +787,9 @@ void whoops(void *userdata, Uint8 *stream, int len) {
   (void)userdata;
   for (int i = 0; i < len; i++) {
     unsigned long t = audio::time + i;
-    stream[i] =
-        37649 & 1 << (t >> 10 & 15)
-            ? (int)(((t + 314) * 128 / ((t >> 5 & 31) + 1) & 255) / 85) * 127
-            : (t * (t >> 17 & 1 ? 12 : 16) / (4 + (t >> 15 & 3)) *
-               (1 + (t >> 13 & 3)));
+    stream[i] = ((127 & t * (7 & t >> 11)) < (245 & t * (8 - (5 & t >> 13)))) *
+                    (128 - (t >> 5 & 127)) +
+                64 + (t >> 6 & 63);
   }
   audio::time += len;
 }
