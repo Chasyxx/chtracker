@@ -41,7 +41,7 @@ jobs:
       - name: Update apt
         run: sudo apt-get update
       - name: Install MinGW-w64 and CMake
-        run: sudo install mingw-w64 cmake
+        run: sudo apt-get install mingw-w64 cmake
 
       - name: dependencies- Cache libfmt
         id: cache-libfmt
