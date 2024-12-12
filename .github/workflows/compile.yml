@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
+    - name: Update apt
+      run: sudo apt-get update
     - name: Install SDL2 and libfmt
       run: sudo apt-get install libsdl2-dev libfmt-dev
 
@@ -35,8 +38,10 @@ jobs:
       - name: depenencies- set cache key
         run: echo "CACHE_KEY=$(date +%Y-%V)" >> $GITHUB_ENV
 
+      - name: Update apt
+        run: sudo apt-get update
       - name: Install MinGW-w64 and CMake
-        run: sudo apt-get install mingw-w64 cmake
+        run: sudo install mingw-w64 cmake
 
       - name: dependencies- Cache libfmt
         id: cache-libfmt
