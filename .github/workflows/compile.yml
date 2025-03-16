@@ -25,7 +25,7 @@ jobs:
         pwd
 
     - name: Configure for Linux compilation
-      run: cmake -DCMAKE_BUILD_TYPE=Release ..
+      run: cmake .. -DCMAKE_BUILD_TYPE=Release
     - name: make a Linux executable
       run: cmake --build . --config Release --parallel
     - name: Upload Linux executable
@@ -89,11 +89,11 @@ jobs:
           mkdir ../fmt/build
           cd ../fmt/build
           pwd
-          cmake -DCMAKE_BUILD_TYPE=Release \
+          cmake .. -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
               -DCMAKE_INSTALL_PREFIX=../../libfmt \
               -DBUILD_SHARED_LIBS=OFF \
-              -DFMT_TEST=OFF ..
+              -DFMT_TEST=OFF
           cmake --build . --config Release --parallel
           cmake --install . --config Release
           cd ../../chtracker
@@ -106,11 +106,10 @@ jobs:
           mkdir ../SDL/build
           cd ../SDL/build
           pwd
-          cmake -DCMAKE_BUILD_TYPE=Release \
+          cmake .. -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
               -DCMAKE_INSTALL_PREFIX=../../libsdl \
-              -DBUILD_SHARED_LIBS=OFF \
-              ..
+              -DBUILD_SHARED_LIBS=OFF
           cmake --build . --config Release --parallel
           cmake --install . --config Release
           cd ../../chtracker
@@ -122,7 +121,7 @@ jobs:
           pwd
 
       - name: configure for Windows cross-compilation
-        run: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt" ..
+        run: cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt"
       - name: make a Windows executable
         run: cmake --build . --config Release --parallel
       - name: Prapare Windows EXE for uploading
