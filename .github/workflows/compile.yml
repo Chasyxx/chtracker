@@ -25,9 +25,9 @@ jobs:
         pwd
 
     - name: Configure for Linux compilation
-      run: cmake .. -DCMAKE_BUILD_TYPE=Release
+      run: cmake ..
     - name: make a Linux executable
-      run: cmake --build . --config Release --parallel
+      run: make
     - name: Upload Linux executable
       uses: actions/upload-artifact@v4
       with:
@@ -89,13 +89,12 @@ jobs:
           mkdir ../fmt/build
           cd ../fmt/build
           pwd
-          cmake .. -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
               -DCMAKE_INSTALL_PREFIX=../../libfmt \
               -DBUILD_SHARED_LIBS=OFF \
               -DFMT_TEST=OFF
-          cmake --build . --config Release --parallel
-          cmake --install . --config Release
+          make
+          make install
           cd ../../chtracker
 
       - if: ${{ steps.cache-sdl2.outputs.cache-hit != 'true' }}
@@ -106,12 +105,11 @@ jobs:
           mkdir ../SDL/build
           cd ../SDL/build
           pwd
-          cmake .. -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
               -DCMAKE_INSTALL_PREFIX=../../libsdl \
               -DBUILD_SHARED_LIBS=OFF
-          cmake --build . --config Release --parallel
-          cmake --install . --config Release
+          make
+          make install
           cd ../../chtracker
 
       - name: Go into build directory
@@ -121,9 +119,9 @@ jobs:
           pwd
 
       - name: configure for Windows cross-compilation
-        run: cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt"
+        run: cmake .. -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt"
       - name: make a Windows executable
-        run: cmake --build . --config Release --parallel
+        run: make
       - name: Prapare Windows EXE for uploading
         run: cat doc/MINGW_RUNTIME_LICENSE.txt | sed -e "/\/\/\//d" > MINGW_RUNTIME_LICENSE.txt
       - name: Upload Windows executable
