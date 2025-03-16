@@ -1,5 +1,5 @@
 .clangd
-/dist/
+dist/
 Makefile
 *.o
 *.oxx
@@ -7,3 +7,4 @@ chtracker
 chtracker.exe
 /src/visual/font.i
 core_dump.*
+build/

@@ -28,6 +28,11 @@
  *   ALL #include directives go here   *
  *                                     *
  ***************************************/
+ 
+#ifdef _WIN32
+    #define SDL_MAIN_HANDLED 1
+    #define main SDL_main
+#endif
 
 #include <SDL2/SDL.h>
 
