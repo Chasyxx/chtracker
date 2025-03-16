@@ -1,0 +1,65 @@
+*.cht
+|- "CHTRCK2" - Don't load the file if this doesn't match
+|- Header
+|  |- 4b Version (e.g. 0x00 0x04 0x00 0x02)
+|  |- 32b Flags
+|  |  |
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |- 00000000 00000000 00000000 00000000
+|  |  |
+|  |  `- Potentially bits to represent little-endian usage?
+|  |     Or 64-bit indices?
+|  |     Or maybe if the sectors are compressed?
+|  |
+|  |- 1b Sector header length
+|  `- Sector header
+|     `- For each sector:
+|        |- A null-terminated string representing the sector type (e.g. "_instruments\0")
+|        |- 4b Sector starting position
+|        `- 4b Sector length
+|
+`- Sectors:
+   |- "_data" sector:
+   |  `- 2b Rows per minute
+   |
+   |- "_instruments" sector:
+   |  |- 1b Instrument count
+   |  `- For each instrument:
+   |     |- 1b Instrument data length (currently 3)
+   |     |- 1b Instrument type
+   |     |- 1b Instrument pattern count
+   |     `- 1b Instrument column view mode
+   |   
+   |- "_order" sector:
+   |  |- 2b Order row count
+   |  `- For each order row:
+   |     `- (instrument count) pattern index columns
+   |
+   `- "_pattern" sector:
+      |- 2b Rows per pattern
+      `- For each instrument:
+         | 1b Instrument pattern count
+         `- For each pattern in the instrument:
+            `- For each row in the instrument's pattern:
+               |- 2b Tile length (Currently 15)
+               |- 1b Tile type
+               |  |- 0: Empty
+               |  |- 1: Note
+               |  `- 2: Note cut
+               |- 4 bits Tile note from 0 (A) to 11 (G#)
+               |- 4 bits Tile octave from 0 to 9
+               |- 1b Tile volume from 0 to 255
+               |- 1_b Tile Effect 1___ type____
+               |- _2b Tile Effect 1___ ____data
+               |- 1_b Tile Effect _2__ type____
+               |- _2b Tile Effect _2__ ____data
+               |- 1_b Tile Effect __3_ type____
+               |- _2b Tile Effect __3_ ____data
+               |- 1_b Tile Effect ___4 type____
+               `- _2b Tile Effect ___4 ____data

@@ -4,11 +4,10 @@ distribute and/or modify this document
 under the terms of the GNU Free
 Documentation License, Version 1.3 or
 any later version published by the Free
-Software Foundation; with the Invariant
-Sections being just "Why chTRACKER,"
-with no Front-Cover Texts, and with no
-Back-Cover Texts. A copy of the license
-is included in the file:
+Software Foundation; with no Invariant
+Sections, with no Front-Cover Texts, and
+with no Back-Cover Texts. A copy of the
+license is included in the file:
 COPYING.DOCUMENTATION
 
 ---------CHTRACKER HELP SCREEN---------
@@ -17,7 +16,10 @@ Use up and down arrow keys to scroll.
 This is where you'll go for information
 on how to use chTRACKER. You might be
 seeing this in the program's built-in
-help menu. If not, hi!
+help menu. Whether or not, hi!
+Currently the UI is being entirely
+revamped. This is probably out of
+date when it comes to that :'3
 
 ---# General
 
@@ -212,7 +214,8 @@ TT |NO VV Eeeee Eeeee|NO VV Eeeee Eeeee|
 
     O- Octave. Goes from 0 to 9. The
        octave origin is at A instead of
-       C (3 in the tracker.)
+       C (C is represented by 3 in the
+       tracker.)
 
     VV- SUPERFINE volume control! You
         get 256 (64) steps of volume!
@@ -318,36 +321,3 @@ F5 - Order management menu
     [Right] will select an instrument to
     clone to. Press [C] again to make
     the clone.
-
----# Why chTRACKER?
-
-People may be wondering what leg up
-this chiptune tracker has from others.
-The initial idea for making this
-program came from two things:
-
-1. I wanted to make a chiptune tracker
-2. I wanted to learn more C++
-
-However I soon found out I also wanted
-to make a chiptune tracker that is free
-from the idea of emulating specific
-sound chips. So many ciptune trackers
-want to emulate specific sound chips.
-Whether it's just a 2A03, or there are
-hundreds of chips, they can't be as
-flexible as if you just put together a
-ton of channels. I know modtrackers do
-this, but they force PCM on you. You
-have to use samples. You can't combine
-various square waves, LFSRs and then
-maybe PCM to create your own fantasy
-chip. At least, not as easily. I want
-this to be a place where you can plan
-your own chips or just experiment
-with what you can do just combining
-random things together. It might make
-the program harder to develop, since
-there isn't a clear goal in mind, but
-it might be the most flexible in terms
-of creativity.
