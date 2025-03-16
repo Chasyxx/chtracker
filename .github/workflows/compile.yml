@@ -15,11 +15,14 @@ jobs:
 
     - name: Update apt
       run: sudo apt-get update
-    - name: Install SDL2, libfmt. and CMake
+    - name: Install SDL2, libfmt, and CMake
       run: sudo apt-get install libsdl2-dev libfmt-dev cmake
 
     - name: Go into build directory
-      run: mkdir build && cd build
+      run: |
+        mkdir build
+        cd build
+        pwd
 
     - name: Configure for Linux compilation
       run: cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -68,6 +71,7 @@ jobs:
 
       - name: Prepare toolchain file
         run: |
+          pwd
           echo "set(CMAKE_SYSTEM_NAME Windows)" > ../toolchain-mingw64.cmake
           echo "set(CMAKE_SYSTEM_VERSION 1)" >> ../toolchain-mingw64.cmake
           echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> ../toolchain-mingw64.cmake
@@ -84,6 +88,7 @@ jobs:
           mkdir ../libfmt
           mkdir ../fmt/build
           cd ../fmt/build
+          pwd
           cmake -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
               -DCMAKE_INSTALL_PREFIX=../../libfmt \
@@ -100,6 +105,7 @@ jobs:
           mkdir ../libsdl
           mkdir ../SDL/build
           cd ../SDL/build
+          pwd
           cmake -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
               -DCMAKE_INSTALL_PREFIX=../../libsdl \
@@ -110,7 +116,10 @@ jobs:
           cd ../../chtracker
 
       - name: Go into build directory
-        run: mkdir build && cd build
+        run: |
+          mkdir build
+          cd build
+          pwd
 
       - name: configure for Windows cross-compilation
         run: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt" ..
