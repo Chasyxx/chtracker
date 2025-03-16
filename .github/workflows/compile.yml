@@ -15,13 +15,16 @@ jobs:
 
     - name: Update apt
       run: sudo apt-get update
-    - name: Install SDL2 and libfmt
-      run: sudo apt-get install libsdl2-dev libfmt-dev
+    - name: Install SDL2, libfmt. and CMake
+      run: sudo apt-get install libsdl2-dev libfmt-dev cmake
 
-    - name: configure for Linux compilation
-      run: CFLAGS="-O2 -Wall -Wextra -I/home/runner/work/chtracker/chtracker/src/headers -Werror -I/usr/include/SDL2 -D_REENTRANT" LIBS="-L/usr/lib/x86_64-linux-gnu -lSDL2-2.0 -lfmt" ./configure --disable-sdl
+    - name: Go into build directory
+      run: mkdir build && cd build
+
+    - name: Configure for Linux compilation
+      run: cmake -DCMAKE_BUILD_TYPE=Release ..
     - name: make a Linux executable
-      run: make
+      run: cmake --build . --config Release --parallel
     - name: Upload Linux executable
       uses: actions/upload-artifact@v4
       with:
@@ -34,6 +37,12 @@ jobs:
     needs: linux
     steps:
       - uses: actions/checkout@v4
+
+      - name: depenencies- set subroot path
+        run: |
+          cd ..
+          echo "SUBROOT_PATH=$(pwd)" >> $GITHUB_ENV
+          cd chtracker
 
       - name: depenencies- set cache key
         run: echo "CACHE_KEY=$(date +%Y-%V)" >> $GITHUB_ENV
@@ -57,13 +66,8 @@ jobs:
           path: /home/runner/work/chtracker/libsdl
           key: libsdl-${{ env.CACHE_KEY }}-chtracker
 
-      - if: ${{ steps.cache-libfmt.outputs.cache-hit != 'true' }}
-        name: dependencies- Build libfmt
+      - name: Prepare toolchain file
         run: |
-          git clone https://github.com/fmtlib/fmt.git ../fmt
-          mkdir ../libfmt
-          mkdir ../fmt/build
-          cd ../fmt/build
           echo "set(CMAKE_SYSTEM_NAME Windows)" > ../toolchain-mingw64.cmake
           echo "set(CMAKE_SYSTEM_VERSION 1)" >> ../toolchain-mingw64.cmake
           echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> ../toolchain-mingw64.cmake
@@ -72,9 +76,21 @@ jobs:
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> ../toolchain-mingw64.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> ../toolchain-mingw64.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> ../toolchain-mingw64.cmake
-          cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-mingw64.cmake -DCMAKE_INSTALL_PREFIX=../../libfmt -DFMT_TEST=OFF ..
-          make
-          make install
+
+      - if: ${{ steps.cache-libfmt.outputs.cache-hit != 'true' }}
+        name: dependencies- Build libfmt
+        run: |
+          git clone https://github.com/fmtlib/fmt.git ../fmt
+          mkdir ../libfmt
+          mkdir ../fmt/build
+          cd ../fmt/build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
+              -DCMAKE_INSTALL_PREFIX=../../libfmt \
+              -DBUILD_SHARED_LIBS=OFF \
+              -DFMT_TEST=OFF ..
+          cmake --build . --config Release --parallel
+          cmake --install . --config Release
           cd ../../chtracker
 
       - if: ${{ steps.cache-sdl2.outputs.cache-hit != 'true' }}
@@ -84,16 +100,22 @@ jobs:
           mkdir ../libsdl
           mkdir ../SDL/build
           cd ../SDL/build
-          ../configure --host=x86_64-w64-mingw32 --prefix=$PWD/../../libsdl --disable-shared --enable-static
-          make
-          make install
+          cmake -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake \
+              -DCMAKE_INSTALL_PREFIX=../../libsdl \
+              -DBUILD_SHARED_LIBS=OFF \
+              ..
+          cmake --build . --config Release --parallel
+          cmake --install . --config Release
           cd ../../chtracker
 
+      - name: Go into build directory
+        run: mkdir build && cd build
+
       - name: configure for Windows cross-compilation
-        run: CFLAGS="-O2 -I$PWD/../libsdl/include/ -I$PWD/../libfmt/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$(../libsdl/bin/sdl2-config --libs) -L$PWD/../libfmt/lib -lfmt --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure --disable-sdl --icon
-# CFLAGS="-O2 -I$HOME/.local/sdl2-mingw-w64/include/ -Dmain=SDL_main -I$PWD/src/headers -Wall -Wextra -Werror" LIBS="$($HOME/.local/sdl2-mingw-w64/bin/sdl2-config --libs) --static" CC="x86_64-w64-mingw32-gcc -c" CXX="x86_64-w64-mingw32-g++ -c" CCLD=x86_64-w64-mingw32-g++ RES=x86_64-w64-mingw32-windres ./configure --disable-sdl --icon
+        run: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt" ..
       - name: make a Windows executable
-        run: make
+        run: cmake --build . --config Release --parallel
       - name: Prapare Windows EXE for uploading
         run: cat doc/MINGW_RUNTIME_LICENSE.txt | sed -e "/\/\/\//d" > MINGW_RUNTIME_LICENSE.txt
       - name: Upload Windows executable
