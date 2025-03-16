@@ -18,14 +18,12 @@ jobs:
     - name: Install SDL2, libfmt, and CMake
       run: sudo apt-get install libsdl2-dev libfmt-dev cmake
 
-    - name: Go into build directory
+    - name: Configure for Linux compilation
       run: |
         mkdir build
         cd build
         pwd
-
-    - name: Configure for Linux compilation
-      run: cmake ..
+        cmake ..
     - name: make a Linux executable
       run: make
     - name: Upload Linux executable
