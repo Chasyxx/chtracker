@@ -18,20 +18,19 @@ jobs:
     - name: Install SDL2, libfmt, and CMake
       run: sudo apt-get install libsdl2-dev libfmt-dev cmake
 
-    - name: Configure for Linux compilation
+    - name: make a Linux executable
       run: |
         mkdir build
         cd build
         pwd
         cmake ..
-    - name: make a Linux executable
-      run: make
+        make
     - name: Upload Linux executable
       uses: actions/upload-artifact@v4
       with:
         name: linux-elf
         retention-days: 30
-        path: ./chtracker
+        path: ./build/chtracker
 
   windows:
     runs-on: ubuntu-latest
@@ -93,7 +92,6 @@ jobs:
               -DFMT_TEST=OFF
           make
           make install
-          cd ../../chtracker
 
       - if: ${{ steps.cache-sdl2.outputs.cache-hit != 'true' }}
         name: dependencies- Build SDL2
@@ -108,25 +106,20 @@ jobs:
               -DBUILD_SHARED_LIBS=OFF
           make
           make install
-          cd ../../chtracker
 
-      - name: Go into build directory
+      - name: make a Windows executable
         run: |
           mkdir build
           cd build
           pwd
-
-      - name: configure for Windows cross-compilation
-        run: cmake .. -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt"
-      - name: make a Windows executable
-        run: make
-      - name: Prapare Windows EXE for uploading
-        run: cat doc/MINGW_RUNTIME_LICENSE.txt | sed -e "/\/\/\//d" > MINGW_RUNTIME_LICENSE.txt
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=../../toolchain-mingw64.cmake -DCMAKE_PREFIX_PATH="${{ env.SUBROOT_PATH }}/libsdl;${{ env.SUBROOT_PATH }}/libfmt"
+          make
+          cat ../doc/MINGW_RUNTIME_LICENSE.txt | sed -e "/\/\/\//d" > MINGW_RUNTIME_LICENSE.txt
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
           retention-days: 30
           path: |
-            ./chtracker.exe
-            ./MINGW_RUNTIME_LICENSE.txt
+            ./build/chtracker.exe
+            ./build/MINGW_RUNTIME_LICENSE.txt
